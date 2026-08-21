@@ -1165,6 +1165,7 @@ namespace TiaMcpServer.Siemens
         {
             return _sta.Run(() =>
             {
+                        AuditLogger.Record("MoveBlockToGroup", $"softwarePath={softwarePath}, blockName={blockName}, target={targetGroupPath}");
                         ValidateBlockName(blockName, "MoveBlockToGroup");
                         if (IsProjectNull())
                         {
@@ -1276,6 +1277,7 @@ namespace TiaMcpServer.Siemens
         {
             return _sta.Run(() =>
             {
+            AuditLogger.Record("DeleteBlock", $"softwarePath={softwarePath}, blockName={blockName}");
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
 
@@ -1318,6 +1320,7 @@ namespace TiaMcpServer.Siemens
         {
             return _sta.Run(() =>
             {
+            AuditLogger.Record("SetBlockNumber", $"softwarePath={softwarePath}, blockName={blockName}, number={number}");
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
 

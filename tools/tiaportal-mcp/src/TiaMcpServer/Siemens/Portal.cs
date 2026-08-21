@@ -883,6 +883,7 @@ namespace TiaMcpServer.Siemens
         {
             return _sta.Run(() =>
             {
+            AuditLogger.Record("SaveAsProject", $"path={path}");
             _logger?.LogInformation($"Saving project as: {path}");
 
             if (IsProjectNull())
@@ -894,6 +895,50 @@ namespace TiaMcpServer.Siemens
 
             (_project as Project)?.SaveAs(di);
 
+            return true;
+            });
+        }
+
+        public bool ArchiveProject(string archivePath)
+        {
+            return _sta.Run(() =>
+            {
+            AuditLogger.Record("ArchiveProject", $"archivePath={archivePath}");
+            _logger?.LogInformation($"Archiving project to: {archivePath}");
+
+            if (IsProjectNull())
+            {
+                return false;
+            }
+
+            var project = _project as Project;
+            if (project == null)
+            {
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(archivePath))
+            {
+                throw new PortalException(PortalErrorCode.InvalidParams, "ArchiveProject: archivePath is empty");
+            }
+
+            // Ensure target directory exists.
+            var targetDir = Path.GetDirectoryName(archivePath);
+            if (!string.IsNullOrEmpty(targetDir))
+            {
+                Directory.CreateDirectory(targetDir);
+            }
+
+            // Openness V18: Project.Archive(DirectoryInfo sourceProjectPath, string archivePath, ProjectArchivationMode mode)
+            var sourcePath = project.Path?.FullName;
+            if (string.IsNullOrEmpty(sourcePath))
+            {
+                throw new PortalException(PortalErrorCode.InvalidState, "ArchiveProject: cannot resolve open project path");
+            }
+
+            project.Archive(new DirectoryInfo(sourcePath), archivePath, ProjectArchivationMode.Compressed);
+
+            _logger?.LogInformation($"Project archived successfully to: {archivePath}");
             return true;
             });
         }

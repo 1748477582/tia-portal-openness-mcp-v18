@@ -223,6 +223,10 @@ namespace TiaMcpServer.ModelContextProtocol
     {
     }
 
+    public class ResponseArchiveProject : ResponseMessage
+    {
+    }
+
     public class ResponseTree : ResponseMessage
     {
         public string? Tree { get; set; }

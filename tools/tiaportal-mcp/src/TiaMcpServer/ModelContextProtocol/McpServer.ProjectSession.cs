@@ -494,6 +494,43 @@ namespace TiaMcpServer.ModelContextProtocol
             }
         }
 
+        [McpServerTool(Name = "ArchiveProject"), Description("[L2][Project] Archive (export) the currently open TIA Portal project to a .zap file for backup/version handoff. Requires: Connect + OpenProject. The archive is created at archivePath (parent directory is created automatically). This is a SAFE read-only export — it does NOT modify or close the open project. Prefer this over SaveAsProject when you only need a distributable snapshot.")]
+        public static ResponseArchiveProject ArchiveProject(
+            [Description("archivePath: full path of the target .zap file, e.g. 'C:/Backups/MyProject_2026-08-21.zap'")] string archivePath)
+        {
+            try
+            {
+                if (Portal.IsLocalSession)
+                {
+                    throw new McpException($"Cannot archive a local session to '{archivePath}'", McpErrorCode.InvalidParams);
+                }
+                else
+                {
+                    if (Portal.ArchiveProject(archivePath))
+                    {
+                        return new ResponseArchiveProject
+                        {
+                            Message = $"Project archived to '{archivePath}'",
+                            Meta = new JsonObject
+                            {
+                                ["timestamp"] = DateTime.Now,
+                                ["success"] = true,
+                                ["archivePath"] = archivePath
+                            }
+                        };
+                    }
+                    else
+                    {
+                        throw new McpException($"Failed archiving project to '{archivePath}' (no project open?)", McpErrorCode.InvalidParams);
+                    }
+                }
+            }
+            catch (Exception ex) when (ex is not McpException)
+            {
+                throw McpError.WithRecovery(ex, $"Unexpected error archiving project to '{archivePath}': {ex.Message}{McpHints.Recovery(ex)}");
+            }
+        }
+
         [McpServerTool(Name = "CloseProject"), Description("[L1][Project] Close the currently open project or multi-user session. Requires: Connect + OpenProject. Any unsaved changes are lost — call SaveProject first. After closing, the connection remains active but no project is open.")]
         public static ResponseCloseProject CloseProject()
         {

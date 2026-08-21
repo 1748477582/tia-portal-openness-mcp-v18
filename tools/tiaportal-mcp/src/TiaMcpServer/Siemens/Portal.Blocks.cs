@@ -413,6 +413,7 @@ namespace TiaMcpServer.Siemens
         {
             return _sta.Run(() =>
             {
+            AuditLogger.Record("ImportBlock", $"softwarePath={softwarePath}, groupPath={groupPath}, importPath={importPath}");
             _logger?.LogInformation($"Importing block from path: {importPath}");
 
             try
@@ -525,6 +526,7 @@ namespace TiaMcpServer.Siemens
         {
             return _sta.Run(() =>
             {
+            AuditLogger.Record("RegenerateBlockFromSource", $"softwarePath={softwarePath}, groupPath={groupPath}, sourceFilePath={sourceFilePath}");
             try
             {
                 if (IsProjectNull())
