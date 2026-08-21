@@ -67,10 +67,14 @@ namespace TiaMcpServer.Siemens
         // StaExecutor 内部带重入守卫——已在 STA 线程上时直接内联执行，故 Portal 内部互调不会死锁。
         private readonly StaExecutor _sta = new StaExecutor();
 
+        // G2 COM 进程级释放：跟踪最后活动时间，空闲超时后自动断开，避免 COM 代理泄漏。
+        private DateTime _lastActivity = DateTime.UtcNow;
+        private readonly int _idleTimeoutMinutes = AppSettings.ConnectionIdleTimeoutMinutes;
+
         // G1 输入校验：PLC 块名/标识符白名单校验（审计 3.5）。
         // 拒绝空、空白、超长（>64）、以及含空白/控制字符或路径类特殊字符的名称，
         // 避免把非法标识符传入 Openness 触发异常或被用作路径注入。
-        private static void ValidateBlockName(string blockName, string context)
+        internal static void ValidateBlockName(string blockName, string context)
         {
             if (string.IsNullOrWhiteSpace(blockName))
                 throw new PortalException(PortalErrorCode.InvalidParams, $"{context}: blockName is empty");
@@ -235,6 +239,81 @@ namespace TiaMcpServer.Siemens
             catch (Exception ex)
             {
                 _logger?.LogWarning(ex, "Error disposing TIA Portal on Dispose");
+            }
+
+            // G2: Force GC to release COM RCWs (Runtime Callable Wrappers) that are
+            // still holding references to the TIA Portal process. Without this, the
+            // TIA Portal process may linger for minutes after Dispose() returns.
+            ForceComCleanup();
+        }
+
+        /// <summary>
+        /// G2: Force garbage collection to release COM RCWs. This is a process-level
+        /// cleanup, not per-object ReleaseComObject (which is controversial for
+        /// Siemens.Engineering and can trigger RPC_E_DISCONNECTED).
+        /// </summary>
+        private void ForceComCleanup()
+        {
+            try
+            {
+                GC.Collect();
+                GC.WaitForPendingFinalizers();
+                GC.Collect(); // Second pass: finalizers may have released more COM references
+                _logger?.LogInformation("COM cleanup: forced GC after TIA Portal dispose");
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "COM cleanup: GC.Collect/WaitForPendingFinalizers threw");
+            }
+        }
+
+        /// <summary>
+        /// G2: Update the last-activity timestamp. Call this from any method that
+        /// indicates genuine user/automation activity (not internal polling).
+        /// </summary>
+        public void TouchActivity()
+        {
+            _lastActivity = DateTime.UtcNow;
+        }
+
+        /// <summary>
+        /// G2: Check if the connection has been idle longer than the configured timeout.
+        /// If so, auto-disconnect to release COM resources. Returns true if disconnected.
+        /// </summary>
+        public bool CheckIdleTimeout()
+        {
+            if (_portal == null) return false;
+            var idle = DateTime.UtcNow - _lastActivity;
+            if (idle.TotalMinutes < _idleTimeoutMinutes) return false;
+
+            _logger?.LogWarning("Connection idle for {IdleMinutes:F1} min (limit={Limit} min), auto-disconnecting",
+                idle.TotalMinutes, _idleTimeoutMinutes);
+            DisconnectPortal();
+            return true;
+        }
+
+        /// <summary>
+        /// G2: Health check — verify the TIA Portal process is still alive and responsive.
+        /// Returns true if the connection is healthy, false if the portal is dead or
+        /// unreachable and should be reconnected.
+        /// </summary>
+        public bool HealthCheck()
+        {
+            if (_portal == null) return false;
+            try
+            {
+                return _sta.Run(() =>
+                {
+                    // Accessing GetProcesses forces a COM call; if the portal process is dead
+                    // this will throw (e.g. RPC_E_SERVER_DIED).
+                    var processes = TiaPortal.GetProcesses();
+                    return processes != null && processes.Any();
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Health check failed: TIA Portal appears dead or unreachable");
+                return false;
             }
         }
 
@@ -499,6 +578,7 @@ namespace TiaMcpServer.Siemens
         {
             return _sta.Run(() =>
             {
+            TouchActivity();
             _logger?.LogInformation("Getting TIA Portal state...");
             if (_portal != null)
             {

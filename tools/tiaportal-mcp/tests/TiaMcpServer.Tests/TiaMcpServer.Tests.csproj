@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net48</TargetFramework>
+    <Nullable>enable</Nullable>
+    <LangVersion>Latest</LangVersion>
+    <IsPackable>false</IsPackable>
+    <IsTestProject>true</IsTestProject>
+    <PlatformTarget>x64</PlatformTarget>
+    <Prefer32Bit>false</Prefer32Bit>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\TiaMcpServer\TiaMcpServer.V18.csproj" />
+  </ItemGroup>
+  <!-- Copy all DLLs from main project build output, plus Siemens.Engineering from TIA Portal -->
+  <Target Name="CopyMainOutput" AfterTargets="Build">
+    <ItemGroup>
+      <MainDlls Include="$(MSBuildProjectDirectory)\..\..\src\TiaMcpServer\bin-verify\Release\net48\*.dll" />
+      <SiemensDlls Include="C:\Program Files\Siemens\Automation\Portal V18\PublicAPI\V18\Siemens.Engineering*.dll" />
+    </ItemGroup>
+    <Copy SourceFiles="@(MainDlls)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(SiemensDlls)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+  </Target>
+</Project>

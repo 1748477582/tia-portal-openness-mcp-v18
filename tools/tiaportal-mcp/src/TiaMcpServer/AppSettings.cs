@@ -16,6 +16,7 @@ namespace TiaMcpServer
         // ---- 默认值（appsettings.json 未配置时生效）----
         public const int DefaultCompileTimeoutSeconds = 600;
         public const int DefaultCacheMaxEntries = 64;
+        public const int DefaultConnectionIdleTimeoutMinutes = 30;
 
         public static string? TiaPortalLocation { get; private set; }
         public static int? TiaMajorVersion { get; private set; }
@@ -25,6 +26,7 @@ namespace TiaMcpServer
         public static string? HttpApiKey { get; private set; }
         public static int CompileTimeoutSeconds { get; private set; } = DefaultCompileTimeoutSeconds;
         public static int CacheMaxEntries { get; private set; } = DefaultCacheMaxEntries;
+        public static int ConnectionIdleTimeoutMinutes { get; private set; } = DefaultConnectionIdleTimeoutMinutes;
         public static int? StepTimeoutSeconds { get; private set; }
 
         /// <summary>配置文件默认位置：exe 所在目录。</summary>
@@ -56,6 +58,7 @@ namespace TiaMcpServer
                         if (TryGetInt(tia, "majorVersion", out var mv) && mv > 0) TiaMajorVersion = mv;
                         if (TryGetInt(tia, "compileTimeoutSeconds", out var cts) && cts > 0) CompileTimeoutSeconds = cts;
                         if (TryGetInt(tia, "cacheMaxEntries", out var cme) && cme > 0) CacheMaxEntries = cme;
+                        if (TryGetInt(tia, "connectionIdleTimeoutMinutes", out var citm) && citm > 0) ConnectionIdleTimeoutMinutes = citm;
                         if (TryGetInt(tia, "stepTimeoutSeconds", out var sts) && sts > 0) StepTimeoutSeconds = sts;
                     }
 

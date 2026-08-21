@@ -414,7 +414,7 @@ namespace TiaMcpServer.Siemens
         /// element inside the block's &lt;AttributeList&gt;. Falls back to the filename stem
         /// when XML parsing is unavailable or the element is not found.
         /// </summary>
-        private static string? ExtractBlockNameFromImportXml(string xmlPath)
+        internal static string? ExtractBlockNameFromImportXml(string xmlPath)
         {
             try
             {
@@ -694,7 +694,7 @@ namespace TiaMcpServer.Siemens
 
         // Walk InnerException chain and concatenate type+message — Openness wraps the
         // useful XML-validation error several layers deep.
-        private static string UnwrapImportError(Exception ex)
+        internal static string UnwrapImportError(Exception ex)
         {
             var parts = new List<string>();
             var cur = ex;
