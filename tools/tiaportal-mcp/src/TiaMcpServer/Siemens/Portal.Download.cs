@@ -52,6 +52,8 @@ namespace TiaMcpServer.Siemens
             string? password = null,
             string? pgPcInterface = null)
         {
+            return _sta.Run(() =>
+            {
             // Env fallback: allows selecting e.g. PLCSIM Softbus without changing the tool schema
             // (older clients cache parameter schemas). Explicit parameter always wins.
             if (string.IsNullOrWhiteSpace(pgPcInterface))
@@ -191,6 +193,7 @@ namespace TiaMcpServer.Siemens
                     Errors = new[] { real.Message }
                 };
             }
+            });
         }
 
         // V21: ConnectionConfiguration.ApplyConfiguration(ConfigurationTargetInterface) returns the
@@ -286,6 +289,8 @@ namespace TiaMcpServer.Siemens
 
         public ResponseCheckDownload CheckDownloadReadiness(string softwarePath)
         {
+            return _sta.Run(() =>
+            {
             var issues = new List<string>();
 
             if (IsProjectNull())
@@ -341,6 +346,7 @@ namespace TiaMcpServer.Siemens
                     : $"PLC '{softwarePath}' has {issues.Count} readiness issue(s).",
                 Issues = issues.Count > 0 ? issues.ToArray() : null
             };
+            });
         }
 
         private void ApplyDefaultDownloadConfig(
@@ -350,6 +356,8 @@ namespace TiaMcpServer.Siemens
             bool stopBeforeDownload,
             bool consistentBlocksOnly)
         {
+            _sta.Run(() =>
+            {
             var typeName = config.GetType().Name;
             _logger?.LogDebug("ApplyDownloadConfig: {TypeName}", typeName);
 
@@ -405,6 +413,7 @@ namespace TiaMcpServer.Siemens
                     DownloadConfigSetSelection(config, "AcceptAll");
                     break;
             }
+            });
         }
 
         private static void DownloadConfigSetSelection(object config, string selectionName)
@@ -433,6 +442,8 @@ namespace TiaMcpServer.Siemens
 
         private ResponseDownload BuildDownloadResponse(DownloadResult result, string softwarePath)
         {
+            return _sta.Run(() =>
+            {
             var errors = new List<string>();
             var warnings = new List<string>();
             CollectDownloadMessages(result.Messages, errors, warnings);
@@ -457,6 +468,7 @@ namespace TiaMcpServer.Siemens
                     ["downloadState"] = result.State.ToString()
                 }
             };
+            });
         }
 
         private static void CollectDownloadMessages(

@@ -18,6 +18,8 @@ namespace TiaMcpServer.Siemens
         public ModelContextProtocol.ResponseJsonReport MonitorWatchTableLiveS7(
             string softwarePath, string watchTableName, string ip, int rack = 0, int slot = 1, string expectModuleContains = "")
         {
+            return _sta.Run(() =>
+            {
             var data = new JsonObject
             {
                 ["softwarePath"] = softwarePath,
@@ -121,6 +123,7 @@ namespace TiaMcpServer.Siemens
                 Data = data,
                 Meta = new JsonObject { ["timestamp"] = DateTime.Now, ["success"] = ok }
             };
+            });
         }
 
         private static string ReadEntryAttr(object entry, params string[] names)

@@ -45,6 +45,8 @@ namespace TiaMcpServer.Siemens
 
         public ResponseMessage ExportAlarmClasses(string softwarePath, string exportPath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -73,10 +75,13 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "ExportAlarmClasses failed for {SoftwarePath}", softwarePath);
                 return new ResponseMessage { Message = $"Export failed: {ex.Message}" };
             }
+            });
         }
 
         public ResponseMessage ImportAlarmClasses(string softwarePath, string importPath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -104,10 +109,13 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "ImportAlarmClasses failed for {SoftwarePath}", softwarePath);
                 return new ResponseMessage { Message = $"Import failed: {ex.Message}" };
             }
+            });
         }
 
         public ResponseMessage ExportAlarmTextLists(string softwarePath, string exportPath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -137,10 +145,13 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "ExportAlarmTextLists failed for {SoftwarePath}", softwarePath);
                 return new ResponseMessage { Message = $"Export failed: {ex.Message}" };
             }
+            });
         }
 
         public ResponseMessage ImportAlarmTextLists(string softwarePath, string importPath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -187,10 +198,13 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "ImportAlarmTextLists failed for {SoftwarePath}", softwarePath);
                 return new ResponseMessage { Message = $"Import failed: {ex.Message}" };
             }
+            });
         }
 
         public ResponseMessage ExportAlarmInstanceTexts(string softwarePath, string exportPath, bool includeInfoText = true, bool includeAdditionalTexts = true, bool includeAlarmClass = true)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -249,6 +263,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "ExportAlarmInstanceTexts failed for {SoftwarePath}", softwarePath);
                 return new ResponseMessage { Message = $"Export failed: {ex.Message}" };
             }
+            });
         }
 
         #endregion

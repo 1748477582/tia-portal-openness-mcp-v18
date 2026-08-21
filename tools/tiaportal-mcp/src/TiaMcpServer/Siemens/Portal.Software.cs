@@ -81,6 +81,8 @@ namespace TiaMcpServer.Siemens
         // name. Used for tolerant softwarePath resolution and "Available PLC paths" error hints.
         public List<PlcSoftware> GetAllPlcSoftware()
         {
+            return _sta.Run(() =>
+            {
             var result = new List<PlcSoftware>();
             if (_project == null) return result;
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -120,17 +122,21 @@ namespace TiaMcpServer.Siemens
             try { WalkDevices(_project.Devices); } catch { }
             try { WalkGroups(_project.DeviceGroups); } catch { }
             return result;
+            });
         }
 
         // " Available PLC paths: a, b, c" suffix for not-found error messages (empty when none).
         public string AvailablePlcPathsSuffix()
         {
+            return _sta.Run(() =>
+            {
             try
             {
                 var names = GetAllPlcSoftware().Select(p => p.Name).Where(n => !string.IsNullOrWhiteSpace(n)).Distinct().ToList();
                 return names.Count > 0 ? " Available PLC paths: " + string.Join(", ", names) : string.Empty;
             }
             catch { return string.Empty; }
+            });
         }
 
         public List<string>? GetPlcTagTables(string softwarePath)
@@ -150,6 +156,8 @@ namespace TiaMcpServer.Siemens
 
         public bool ExportPlcTagTable(string softwarePath, string tagTableName, string exportPath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return false;
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return false;
@@ -161,10 +169,13 @@ namespace TiaMcpServer.Siemens
             var table = TryFindByNameInCollection(tablesRoot, new[] { "TagTables" }, tagTableName);
             if (table == null) return false;
             return TryExportEngineeringObject(table, exportPath, out _);
+            });
         }
 
         public void ImportPlcTagTable(string softwarePath, string folderPath, string importPath)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull()) throw new PortalException(PortalErrorCode.InvalidState, "No project is open. If a project is already open in the TIA Portal UI, call AttachToOpenProject(projectName); otherwise call OpenProject(path) for a local .apXX project, or CreateProject to start a new one. (Connect is attempted automatically.)");
 
             var plc = GetPlcSoftware(softwarePath);
@@ -196,10 +207,13 @@ namespace TiaMcpServer.Siemens
             {
                 throw new PortalException(PortalErrorCode.ImportFailed, ex.Message, null, ex);
             }
+            });
         }
 
         public ResponseImportBatch ImportPlcTagTablesFromDirectory(string softwarePath, string folderPath, string dir, string regexName = "", bool overwrite = true)
         {
+            return _sta.Run(() =>
+            {
             var imported = new List<string>();
             var failed = new List<ImportFailure>();
 
@@ -239,6 +253,7 @@ namespace TiaMcpServer.Siemens
                 failed.Add(new ImportFailure { Path = dir, Error = ex.ToString() });
                 return new ResponseImportBatch { Imported = imported, Failed = failed };
             }
+            });
         }
 
         public List<string>? GetPlcWatchTables(string softwarePath)
@@ -262,6 +277,8 @@ namespace TiaMcpServer.Siemens
 
         public bool ExportPlcWatchTable(string softwarePath, string watchTableName, string exportPath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return false;
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return false;
@@ -283,10 +300,13 @@ namespace TiaMcpServer.Siemens
 
             if (table == null) return false;
             return TryExportEngineeringObject(table, exportPath, out _);
+            });
         }
 
         public ResponseImportBatch ExportPlcWatchTablesToDirectory(string softwarePath, string dir, string regexName = "")
         {
+            return _sta.Run(() =>
+            {
             var exported = new List<string>();
             var failed = new List<ImportFailure>();
 
@@ -321,6 +341,7 @@ namespace TiaMcpServer.Siemens
                 failed.Add(new ImportFailure { Path = dir, Error = ex.ToString() });
                 return new ResponseImportBatch { Imported = exported, Failed = failed };
             }
+            });
         }
 
         // ── Force Tables ──────────────────────────────────────────────────────
@@ -375,6 +396,8 @@ namespace TiaMcpServer.Siemens
             string modifyValue,
             string trigger = "Permanent")
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -413,6 +436,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "EnsureWatchTableEntry failed");
                 return new ResponseMessage { Message = $"Error: {ex.Message}" };
             }
+            });
         }
 
         public ResponseMessage EnsureForceTableEntry(
@@ -421,6 +445,8 @@ namespace TiaMcpServer.Siemens
             string address,
             string forceValue)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -457,6 +483,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "EnsureForceTableEntry failed");
                 return new ResponseMessage { Message = $"Error: {ex.Message}" };
             }
+            });
         }
 
         private static object? FindOrCreateWatchTable(object group, string tableName)
@@ -546,6 +573,8 @@ namespace TiaMcpServer.Siemens
 
         public ModelContextProtocol.ResponseJsonReport ReadPlcWatchTableCurrentValuesReadOnly(string softwarePath, string watchTableName, int maxEntries = 50)
         {
+            return _sta.Run(() =>
+            {
             var data = new JsonObject
             {
                 ["timestamp"] = DateTime.Now.ToString("O"),
@@ -614,10 +643,13 @@ namespace TiaMcpServer.Siemens
                 data["error"] = FormatExceptionDetail(ex);
                 return new ModelContextProtocol.ResponseJsonReport { Ok = false, Message = ex.Message, Data = data };
             }
+            });
         }
 
         public ModelContextProtocol.ResponseJsonReport ProbePlcMonitorOnlineCapabilities(string softwarePath)
         {
+            return _sta.Run(() =>
+            {
             var data = new JsonObject
             {
                 ["softwarePath"] = softwarePath,
@@ -700,10 +732,13 @@ namespace TiaMcpServer.Siemens
                 data["error"] = ex.ToString();
                 return new ModelContextProtocol.ResponseJsonReport { Ok = false, Message = ex.Message, Data = data };
             }
+            });
         }
 
         public ModelContextProtocol.ResponseGlobalLibraryProbe ProbeGlobalLibrary(string libraryPath, int maxItems = 500)
         {
+            return _sta.Run(() =>
+            {
             var warnings = new List<string>();
             var raw = new JsonObject
             {
@@ -818,6 +853,7 @@ namespace TiaMcpServer.Siemens
                     Raw = raw
                 };
             }
+            });
         }
 
         public ModelContextProtocol.ResponseGlobalLibraryImport ImportMasterCopyFromGlobalLibrary(
@@ -829,6 +865,8 @@ namespace TiaMcpServer.Siemens
             int left = 0,
             int top = 0)
         {
+            return _sta.Run(() =>
+            {
             var attempts = new List<string>();
             var warnings = new List<string>();
             var raw = new JsonObject
@@ -977,10 +1015,13 @@ namespace TiaMcpServer.Siemens
                     Raw = raw
                 };
             }
+            });
         }
 
         public void ImportTechnologyObject(string softwarePath, string folderPath, string importPath)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull()) throw new PortalException(PortalErrorCode.InvalidState, "No project is open. If a project is already open in the TIA Portal UI, call AttachToOpenProject(projectName); otherwise call OpenProject(path) for a local .apXX project, or CreateProject to start a new one. (Connect is attempted automatically.)");
 
             var plc = GetPlcSoftware(softwarePath);
@@ -1009,10 +1050,13 @@ namespace TiaMcpServer.Siemens
             {
                 throw new PortalException(PortalErrorCode.ImportFailed, ex.Message, null, ex);
             }
+            });
         }
 
         public ResponseImportBatch ImportTechnologyObjectsFromDirectory(string softwarePath, string folderPath, string dir, string regexName = "", bool overwrite = true)
         {
+            return _sta.Run(() =>
+            {
             var imported = new List<string>();
             var failed = new List<ImportFailure>();
 
@@ -1052,6 +1096,7 @@ namespace TiaMcpServer.Siemens
                 failed.Add(new ImportFailure { Path = dir, Error = ex.ToString() });
                 return new ResponseImportBatch { Imported = imported, Failed = failed };
             }
+            });
         }
 
         // ── Technology Objects (TO) ──────────────────────────────────────────
@@ -1071,6 +1116,8 @@ namespace TiaMcpServer.Siemens
 
         public List<JsonObject> GetTechnologyObjects(string softwarePath)
         {
+            return _sta.Run(() =>
+            {
             var result = new List<JsonObject>();
             if (IsProjectNull()) return result;
             var plc = GetPlcSoftware(softwarePath);
@@ -1101,10 +1148,13 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "GetTechnologyObjects failed for {SoftwarePath}", softwarePath);
             }
             return result;
+            });
         }
 
         public ResponseMessage ExportTechnologyObject(string softwarePath, string toName, string exportPath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -1132,11 +1182,14 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "ExportTechnologyObject failed");
                 return new ResponseMessage { Message = $"Export failed: {ex.Message}" };
             }
+            });
         }
 
         public ResponseImportBatch ExportTechnologyObjectsToDirectory(
             string softwarePath, string exportDir, string regexName = "")
         {
+            return _sta.Run(() =>
+            {
             var exported = new List<string>();
             var failed = new List<ImportFailure>();
 
@@ -1186,6 +1239,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return new ResponseImportBatch { Imported = exported, Failed = failed };
+            });
         }
 
         public (string? Name, string ProgramType, List<string> Screens)? GetHmiProgramInfo(string softwarePath)
@@ -1224,6 +1278,8 @@ namespace TiaMcpServer.Siemens
 
         public ModelContextProtocol.ResponseObjectDescribe DescribeHmiSoftware(string softwarePath, int maxMembers = 200)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
             {
                 return new ModelContextProtocol.ResponseObjectDescribe
@@ -1258,10 +1314,13 @@ namespace TiaMcpServer.Siemens
                 TypeName = sw.GetType().FullName ?? sw.GetType().Name,
                 Members = DescribeMembers(sw, Math.Max(10, Math.Min(2000, maxMembers))).ToList()
             };
+            });
         }
 
         public ModelContextProtocol.ResponseObjectDescribe DescribeHmiScreen(string softwarePath, string screenName, int maxMembers = 200)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
             {
                 return new ModelContextProtocol.ResponseObjectDescribe
@@ -1309,10 +1368,13 @@ namespace TiaMcpServer.Siemens
                 TypeName = screen.GetType().FullName ?? screen.GetType().Name,
                 Members = DescribeMembers(screen, Math.Max(10, Math.Min(2000, maxMembers))).ToList()
             };
+            });
         }
 
         public ModelContextProtocol.ResponseObjectDescribe DescribeHmiTagTable(string softwarePath, string tagTableName, int maxMembers = 200)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
             {
                 return new ModelContextProtocol.ResponseObjectDescribe
@@ -1360,10 +1422,13 @@ namespace TiaMcpServer.Siemens
                 TypeName = table.GetType().FullName ?? table.GetType().Name,
                 Members = DescribeMembers(table, Math.Max(10, Math.Min(2000, maxMembers))).ToList()
             };
+            });
         }
 
         public ModelContextProtocol.ResponseObjectDescribe DescribeHmiTag(string softwarePath, string tagTableName, string tagName, int maxMembers = 200)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
             {
                 return new ModelContextProtocol.ResponseObjectDescribe
@@ -1459,10 +1524,13 @@ namespace TiaMcpServer.Siemens
                 TypeName = tagObj.GetType().FullName ?? tagObj.GetType().Name,
                 Members = DescribeMembers(tagObj, Math.Max(10, Math.Min(2000, maxMembers))).ToList()
             };
+            });
         }
 
         public ModelContextProtocol.ResponseObjectDescribe DescribeHmiScreenItem(string softwarePath, string screenName, string itemName, int maxMembers = 200)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
             {
                 return new ModelContextProtocol.ResponseObjectDescribe
@@ -1553,6 +1621,7 @@ namespace TiaMcpServer.Siemens
                 TypeName = itemObj.GetType().FullName ?? itemObj.GetType().Name,
                 Members = DescribeMembers(itemObj, Math.Max(10, Math.Min(2000, maxMembers))).ToList()
             };
+            });
         }
 
         public ResponseMessage EnsureStartStopUnifiedHmi(
@@ -1562,6 +1631,8 @@ namespace TiaMcpServer.Siemens
             string plcName = "PLC_1",
             string connectionName = "HMI_Connection_1")
         {
+            return _sta.Run(() =>
+            {
             var meta = new JsonObject
             {
                 ["timestamp"] = DateTime.Now,
@@ -2157,10 +2228,13 @@ namespace TiaMcpServer.Siemens
                 Step("exception", false, ex.ToString());
                 return new ResponseMessage { Message = "Failed creating HMI skeleton", Meta = meta };
             }
+            });
         }
 
         public ResponseMessage EnsureUnifiedHmiScreen(string hmiSoftwarePath, string screenName, uint width = 0, uint height = 0)
         {
+            return _sta.Run(() =>
+            {
             return RunHmiStepTool("EnsureUnifiedHmiScreen", meta =>
             {
                 var sw = ResolveHmiSoftwareOrThrow(hmiSoftwarePath);
@@ -2185,10 +2259,13 @@ namespace TiaMcpServer.Siemens
                 meta["screenType"] = screen.GetType().FullName;
                 return $"HMI screen '{screenName}' {action}.";
             });
+            });
         }
 
         public ResponseMessage EnsureUnifiedHmiTagTable(string hmiSoftwarePath, string tagTableName)
         {
+            return _sta.Run(() =>
+            {
             return RunHmiStepTool("EnsureUnifiedHmiTagTable", meta =>
             {
                 var sw = ResolveHmiSoftwareOrThrow(hmiSoftwarePath);
@@ -2209,6 +2286,7 @@ namespace TiaMcpServer.Siemens
                 meta["tagTableType"] = table.GetType().FullName;
                 return $"HMI tag table '{tagTableName}' {action}.";
             });
+            });
         }
 
         /// <summary>
@@ -2223,6 +2301,8 @@ namespace TiaMcpServer.Siemens
             JsonArray writeResults,
             string address = "")
         {
+            _sta.Run(() =>
+            {
             bool Set(string label, object? value, params string[] names)
             {
                 var ok = TrySetAnyPropertyOrAttribute(tag, value, names);
@@ -2287,6 +2367,8 @@ namespace TiaMcpServer.Siemens
                 if (TrySetUnifiedHmiTagAccessModeByEnumScan(tag, true))
                     writeResults.Add("AccessMode_repass_symbolic=true");
             }
+
+            });
         }
 
         private static void TrySetUnifiedHmiTagRuntimeAddress(object tag, string runtimeAddress, JsonArray writeResults)
@@ -2511,6 +2593,8 @@ namespace TiaMcpServer.Siemens
 
         public ResponseMessage EnsureUnifiedHmiTag(string hmiSoftwarePath, string tagTableName, string tagName, string hmiDataType = "Bool", string plcName = "PLC_1", string plcTag = "", string connectionName = "", string address = "", bool requireVerifiedBinding = true)
         {
+            return _sta.Run(() =>
+            {
             return RunHmiStepTool("EnsureUnifiedHmiTag", meta =>
             {
                 var sw = ResolveHmiSoftwareOrThrow(hmiSoftwarePath);
@@ -2551,10 +2635,13 @@ namespace TiaMcpServer.Siemens
 
                 return $"HMI tag '{tagName}' {action}. Binding={binding.Status}.";
             });
+            });
         }
 
         public ModelContextProtocol.ResponseObjectDescribe EnsureUnifiedHmiConnection(string hmiSoftwarePath, string connectionName = "HMI_Connection_1", string plcName = "PLC_1")
         {
+            return _sta.Run(() =>
+            {
             var sw = ResolveHmiSoftwareOrThrow(hmiSoftwarePath);
             var connections = TryGetPropertyValue(sw, "Connections");
             if (connections == null) throw new InvalidOperationException($"Connections collection not found on HMI software '{hmiSoftwarePath}'.");
@@ -2585,10 +2672,13 @@ namespace TiaMcpServer.Siemens
                 Members = DescribeMembers(connection, 220),
                 Message = $"HMI connection '{connectionName}' ensured. PartnerResolved={partner.Summary}; {SummarizeHmiObjectReadback(connection, "Name", "CommunicationDriver", "Partner", "Station", "Node", "InitialAddress", "PlcName", "ControllerName", "PartnerName")}"
             };
+            });
         }
 
         public ResponseMessage EnsureUnifiedHmiScreenItem(string hmiSoftwarePath, string screenName, string itemName, string itemType = "Button", int left = 0, int top = 0, uint width = 120, uint height = 40, string text = "")
         {
+            return _sta.Run(() =>
+            {
             return RunHmiStepTool("EnsureUnifiedHmiScreenItem", meta =>
             {
                 var screen = ResolveHmiScreenOrThrow(hmiSoftwarePath, screenName);
@@ -2619,10 +2709,13 @@ namespace TiaMcpServer.Siemens
                 meta["itemType"] = item.GetType().FullName;
                 return $"HMI screen item '{itemName}' {action}.";
             });
+            });
         }
 
         public ResponseMessage ApplyUnifiedHmiScreenDesignJson(string hmiSoftwarePath, string screenName, string designJson, bool strict = true)
         {
+            return _sta.Run(() =>
+            {
             return RunHmiStepTool("ApplyUnifiedHmiScreenDesignJson", meta =>
             {
                 if (string.IsNullOrWhiteSpace(designJson))
@@ -2732,10 +2825,13 @@ namespace TiaMcpServer.Siemens
                 }
                 return $"Applied Unified HMI design to '{screenName}'. changed={changed.Count}, failed={failed.Count}.";
             });
+            });
         }
 
         public ResponseMessage BindUnifiedHmiButtonPressedTag(string hmiSoftwarePath, string screenName, string buttonName, string tagName)
         {
+            return _sta.Run(() =>
+            {
             return RunHmiStepTool("BindUnifiedHmiButtonPressedTag", meta =>
             {
                 var screen = ResolveHmiScreenOrThrow(hmiSoftwarePath, screenName);
@@ -2773,10 +2869,13 @@ namespace TiaMcpServer.Siemens
                     ? $"Button '{buttonName}' pressed-state tag bound to '{tagName}'."
                     : $"Pressed-state part created for '{buttonName}', but no writable tag-name property was found.";
             });
+            });
         }
 
         public List<string> ListUnifiedHmiApiTypes(string nameContains = "", int limit = 500)
         {
+            return _sta.Run(() =>
+            {
             var filter = nameContains?.Trim() ?? string.Empty;
             var result = new List<string>();
 
@@ -2818,10 +2917,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return result;
+            });
         }
 
         public ResponseMessage EnsureUnifiedHmiButtonEventHandler(string hmiSoftwarePath, string screenName, string buttonName, string eventType)
         {
+            return _sta.Run(() =>
+            {
             return RunHmiStepTool("EnsureUnifiedHmiButtonEventHandler", meta =>
             {
                 var button = ResolveHmiScreenItemOrThrow(hmiSoftwarePath, screenName, buttonName);
@@ -2860,10 +2962,13 @@ namespace TiaMcpServer.Siemens
             });
 
             static string eventValueToText(object value) => value.ToString() ?? string.Empty;
+            });
         }
 
         public ModelContextProtocol.ResponseObjectDescribe DescribeUnifiedHmiButtonEventScript(string hmiSoftwarePath, string screenName, string buttonName, string eventType, int maxMembers = 200)
         {
+            return _sta.Run(() =>
+            {
             try
             {
                 if (IsProjectNull())
@@ -2970,10 +3075,13 @@ namespace TiaMcpServer.Siemens
                     Members = Array.Empty<ModelContextProtocol.ObjectMember>()
                 };
             }
+            });
         }
 
         public ResponseMessage SetUnifiedHmiButtonEventScriptCode(string hmiSoftwarePath, string screenName, string buttonName, string eventType, string scriptCode, string globalDefinitionAreaScriptCode = "", bool async = false)
         {
+            return _sta.Run(() =>
+            {
             return RunHmiStepTool("SetUnifiedHmiButtonEventScriptCode", meta =>
             {
                 var handler = ResolveHmiButtonEventHandlerOrThrow(hmiSoftwarePath, screenName, buttonName, eventType);
@@ -3026,10 +3134,13 @@ namespace TiaMcpServer.Siemens
 
                 return $"ScriptCode set for '{buttonName}.{eventType}'.";
             });
+            });
         }
 
         public ResponseMessage EnsureUnifiedHmiDynamization(string hmiSoftwarePath, string screenName, string itemName, string propertyName, string dynamizationType = "")
         {
+            return _sta.Run(() =>
+            {
             return RunHmiStepTool("EnsureUnifiedHmiDynamization", meta =>
             {
                 var item = ResolveHmiScreenItemOrThrow(hmiSoftwarePath, screenName, itemName);
@@ -3083,6 +3194,7 @@ namespace TiaMcpServer.Siemens
                 meta["attemptErrors"] = string.Join(" || ", errors);
                 throw new InvalidOperationException($"Unable to create dynamization for '{itemName}.{propertyName}'.");
             });
+            });
         }
 
         /// <summary>
@@ -3103,6 +3215,8 @@ namespace TiaMcpServer.Siemens
 
         public ResponseMessage BindUnifiedHmiTagDynamization(string hmiSoftwarePath, string screenName, string itemName, string propertyName, string tagName, string dataType = "Bool", string plcTag = "", string address = "")
         {
+            return _sta.Run(() =>
+            {
             return RunHmiStepTool("BindUnifiedHmiTagDynamization", meta =>
             {
                 var item = ResolveHmiScreenItemOrThrow(hmiSoftwarePath, screenName, itemName);
@@ -3150,6 +3264,7 @@ namespace TiaMcpServer.Siemens
 
                 return $"Tag dynamization for '{itemName}.{propertyName}' bound to '{tagName}'.";
             });
+            });
         }
 
         private static bool TrySetProperty(object target, string propName, object? value)
@@ -3172,6 +3287,8 @@ namespace TiaMcpServer.Siemens
 
         private ResponseMessage RunHmiStepTool(string toolName, Func<JsonObject, string> action)
         {
+            return _sta.Run(() =>
+            {
             var meta = new JsonObject
             {
                 ["timestamp"] = DateTime.Now,
@@ -3201,10 +3318,13 @@ namespace TiaMcpServer.Siemens
                 meta["error"] = ex.ToString();
                 return new ResponseMessage { Message = $"{toolName} failed", Meta = meta };
             }
+            });
         }
 
         private object ResolveHmiSoftwareOrThrow(string hmiSoftwarePath)
         {
+            return _sta.Run(() =>
+            {
             var sc = GetSoftwareContainer(hmiSoftwarePath);
             if (sc?.Software == null)
             {
@@ -3212,10 +3332,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return sc.Software;
+            });
         }
 
         private object ResolveHmiScreenOrThrow(string hmiSoftwarePath, string screenName)
         {
+            return _sta.Run(() =>
+            {
             var sw = ResolveHmiSoftwareOrThrow(hmiSoftwarePath);
             var screen = TryFindByNameInCollection(sw, new[] { "Screens", "ScreenFolder" }, screenName);
             if (screen == null)
@@ -3224,10 +3347,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return screen;
+            });
         }
 
         private object ResolveHmiScreenItemOrThrow(string hmiSoftwarePath, string screenName, string itemName)
         {
+            return _sta.Run(() =>
+            {
             var screen = ResolveHmiScreenOrThrow(hmiSoftwarePath, screenName);
             var items = TryGetPropertyValue(screen, "ScreenItems");
             if (items == null)
@@ -3242,10 +3368,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return item;
+            });
         }
 
         private object ResolveHmiButtonEventHandlerOrThrow(string hmiSoftwarePath, string screenName, string buttonName, string eventType)
         {
+            return _sta.Run(() =>
+            {
             var button = ResolveHmiScreenItemOrThrow(hmiSoftwarePath, screenName, buttonName);
             var eventHandlers = TryGetPropertyValue(button, "EventHandlers");
             if (eventHandlers == null)
@@ -3275,10 +3404,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return handler;
+            });
         }
 
         private object EnsureHmiTagTableObject(object hmiSoftware, string tagTableName)
         {
+            return _sta.Run(() =>
+            {
             var tagRoot = TryGetHmiTagRoot(hmiSoftware);
             var table = TryFindHmiTagTable(hmiSoftware, tagTableName);
             if (table != null) return table;
@@ -3296,6 +3428,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return table;
+            });
         }
 
         private static object? TryCreateNamedEngineeringObject(object collection, string name, out string? error)
@@ -3803,6 +3936,8 @@ namespace TiaMcpServer.Siemens
 
         private UnifiedHmiPlcPartnerInfo ResolveUnifiedHmiPlcPartner(string plcSoftwarePath)
         {
+            return _sta.Run(() =>
+            {
             plcSoftwarePath ??= string.Empty;
             var info = new UnifiedHmiPlcPartnerInfo
             {
@@ -3847,6 +3982,7 @@ namespace TiaMcpServer.Siemens
             if (string.IsNullOrWhiteSpace(info.DeviceName)) info.DeviceName = FirstPathSegment(plcSoftwarePath);
             if (string.IsNullOrWhiteSpace(info.StationName)) info.StationName = info.DeviceName;
             return info;
+            });
         }
 
         private static string FirstPathSegment(string path)
@@ -3911,6 +4047,8 @@ namespace TiaMcpServer.Siemens
         /// </summary>
         private string InferUnifiedPlcFamilyFromSoftwarePath(string plcSoftwarePath)
         {
+            return _sta.Run(() =>
+            {
             try
             {
                 var sc = GetSoftwareContainer(plcSoftwarePath);
@@ -3943,6 +4081,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return "UNKNOWN";
+            });
         }
 
         /// <summary>
@@ -3951,6 +4090,8 @@ namespace TiaMcpServer.Siemens
         /// </summary>
         private string TryInferPlcFamilyFromProjectDevices(string plcSoftwarePath)
         {
+            return _sta.Run(() =>
+            {
             try
             {
                 if (_project?.Devices == null) return string.Empty;
@@ -3993,6 +4134,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return string.Empty;
+            });
         }
 
         private static object? SelectCommunicationDriverEnumValue(Type enumType, string plcFamily)
@@ -4063,6 +4205,8 @@ namespace TiaMcpServer.Siemens
         /// </summary>
         private void TryConfigureUnifiedHmiCommunicationDriver(object connection, string plcSoftwarePath)
         {
+            _sta.Run(() =>
+            {
             var plcFamily = InferUnifiedPlcFamilyFromSoftwarePath(plcSoftwarePath);
 
             try
@@ -4120,6 +4264,7 @@ namespace TiaMcpServer.Siemens
             TrySetCommunicationDriverFromAttributeInfos(connection, driverCandidates);
 
             TryConfigureUnifiedDriverProperties(connection, plcFamily);
+            });
         }
 
         private static void ValidateUnifiedHmiCommunicationDriver(object connection, string plcFamily)
@@ -4529,6 +4674,8 @@ namespace TiaMcpServer.Siemens
 
         public void ExportHmiScreen(string softwarePath, string screenName, string exportPath)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull()) throw new PortalException(PortalErrorCode.InvalidState, "Project is null");
             var softwareContainer = GetSoftwareContainer(softwarePath);
             if (softwareContainer?.Software == null) throw new PortalException(PortalErrorCode.NotFound, $"HMI software not found: {softwarePath}");
@@ -4538,10 +4685,13 @@ namespace TiaMcpServer.Siemens
 
             if (!TryExportEngineeringObject(screen, exportPath, out var err))
                 throw new PortalException(PortalErrorCode.ExportFailed, err ?? "HMI screen export failed");
+            });
         }
 
         public void ExportHmiTagTable(string softwarePath, string tagTableName, string exportPath)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull()) throw new PortalException(PortalErrorCode.InvalidState, "Project is null");
             var softwareContainer = GetSoftwareContainer(softwarePath);
             if (softwareContainer?.Software == null) throw new PortalException(PortalErrorCode.NotFound, $"HMI software not found: {softwarePath}");
@@ -4552,10 +4702,13 @@ namespace TiaMcpServer.Siemens
 
             if (!TryExportEngineeringObject(table, exportPath, out var err))
                 throw new PortalException(PortalErrorCode.ExportFailed, err ?? "HMI tag table export failed");
+            });
         }
 
         public void ExportHmiConnection(string softwarePath, string connectionName, string exportPath)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull()) throw new PortalException(PortalErrorCode.InvalidState, "Project is null");
             var softwareContainer = GetSoftwareContainer(softwarePath);
             if (softwareContainer?.Software == null) throw new PortalException(PortalErrorCode.NotFound, $"HMI software not found: {softwarePath}");
@@ -4569,10 +4722,13 @@ namespace TiaMcpServer.Siemens
 
             if (!TryExportEngineeringObject(connection, exportPath, out var err))
                 throw new PortalException(PortalErrorCode.ExportFailed, err ?? "HMI connection export failed");
+            });
         }
 
         public string ProbeClassicHmiConnectionCreation(string softwarePath, string connectionName, string exportPath)
         {
+            return _sta.Run(() =>
+            {
             var sb = new StringBuilder();
             if (IsProjectNull()) return "Project is null";
 
@@ -4685,6 +4841,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return sb.ToString();
+            });
         }
 
         public (List<string> Exported, List<string> Failed)? ExportHmiProgram(string softwarePath, string exportDir, bool exportScreens = true, bool exportTagTables = true)
@@ -4725,6 +4882,8 @@ namespace TiaMcpServer.Siemens
 
         public void ImportHmiScreen(string softwarePath, string folderPath, string importPath)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull()) throw new PortalException(PortalErrorCode.InvalidState, "No project is open. If a project is already open in the TIA Portal UI, call AttachToOpenProject(projectName); otherwise call OpenProject(path) for a local .apXX project, or CreateProject to start a new one. (Connect is attempted automatically.)");
 
             var softwareContainer = GetSoftwareContainer(softwarePath);
@@ -4765,10 +4924,13 @@ namespace TiaMcpServer.Siemens
             {
                 throw new PortalException(PortalErrorCode.ImportFailed, ex.Message, null, ex);
             }
+            });
         }
 
         public void ImportHmiTagTable(string softwarePath, string folderPath, string importPath)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull()) throw new PortalException(PortalErrorCode.InvalidState, "No project is open. If a project is already open in the TIA Portal UI, call AttachToOpenProject(projectName); otherwise call OpenProject(path) for a local .apXX project, or CreateProject to start a new one. (Connect is attempted automatically.)");
 
             var softwareContainer = GetSoftwareContainer(softwarePath);
@@ -4804,10 +4966,13 @@ namespace TiaMcpServer.Siemens
             {
                 throw new PortalException(PortalErrorCode.ImportFailed, ex.Message, null, ex);
             }
+            });
         }
 
         public void ImportHmiConnection(string softwarePath, string importPath)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull()) throw new PortalException(PortalErrorCode.InvalidState, "No project is open. If a project is already open in the TIA Portal UI, call AttachToOpenProject(projectName); otherwise call OpenProject(path) for a local .apXX project, or CreateProject to start a new one. (Connect is attempted automatically.)");
 
             var softwareContainer = GetSoftwareContainer(softwarePath);
@@ -4833,10 +4998,13 @@ namespace TiaMcpServer.Siemens
             {
                 throw new PortalException(PortalErrorCode.ImportFailed, ex.Message, null, ex);
             }
+            });
         }
 
         public ResponseImportBatch ImportHmiScreensFromDirectory(string softwarePath, string folderPath, string dir, string regexName = "", bool overwrite = true)
         {
+            return _sta.Run(() =>
+            {
             var imported = new List<string>();
             var failed = new List<ImportFailure>();
 
@@ -4883,10 +5051,13 @@ namespace TiaMcpServer.Siemens
                 failed.Add(new ImportFailure { Path = dir, Error = ex.ToString() });
                 return new ResponseImportBatch { Imported = imported, Failed = failed };
             }
+            });
         }
 
         public ResponseImportBatch ImportHmiTagTablesFromDirectory(string softwarePath, string folderPath, string dir, string regexName = "", bool overwrite = true)
         {
+            return _sta.Run(() =>
+            {
             var imported = new List<string>();
             var failed = new List<ImportFailure>();
 
@@ -4933,6 +5104,7 @@ namespace TiaMcpServer.Siemens
                 failed.Add(new ImportFailure { Path = dir, Error = ex.ToString() });
                 return new ResponseImportBatch { Imported = imported, Failed = failed };
             }
+            });
         }
 
         public ResponseSeed SeedProjectFromReference(
@@ -4941,6 +5113,8 @@ namespace TiaMcpServer.Siemens
             string referenceDir,
             JsonObject? placeholders = null)
         {
+            return _sta.Run(() =>
+            {
             var imported = new List<string>();
             var failed = new List<ImportFailure>();
 
@@ -5070,6 +5244,7 @@ namespace TiaMcpServer.Siemens
                 failed.Add(new ImportFailure { Path = referenceDir, Error = ex.ToString() });
                 return new ResponseSeed { Imported = imported, Failed = failed, Placeholders = placeholders };
             }
+            });
         }
 
         private static string MakeSafeFileName(string name)
@@ -6544,6 +6719,8 @@ namespace TiaMcpServer.Siemens
         /// </summary>
         public void DeletePlcExternalSource(string softwarePath, string externalSourceName)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "DeletePlcExternalSource: project is null");
 
@@ -6587,10 +6764,13 @@ namespace TiaMcpServer.Siemens
             }
 
             // source not present = idempotent no-op success
+            });
         }
 
         public void ImportPlcExternalSource(string softwarePath, string groupPath, string filePath)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "ImportPlcExternalSource: project is null");
             var softwareContainer = GetSoftwareContainer(softwarePath);
@@ -6693,6 +6873,7 @@ namespace TiaMcpServer.Siemens
             }
 
             throw new PortalException(PortalErrorCode.OpennessError, "ImportPlcExternalSource: all import-like methods failed: " + string.Join(" | ", failures.Take(12)));
+            });
         }
 
         private static bool ExternalSourceNameMatches(string actualName, string requested)
@@ -6774,6 +6955,8 @@ namespace TiaMcpServer.Siemens
 
         public void GenerateBlocksFromExternalSource(string softwarePath, string externalSourceName)
         {
+            _sta.Run(() =>
+            {
             if (IsProjectNull()) throw new PortalException(PortalErrorCode.InvalidState, "GenerateBlocksFromExternalSource: project is null");
             var softwareContainer = GetSoftwareContainer(softwarePath);
             if (softwareContainer?.Software is not PlcSoftware plcSoftware) throw new PortalException(PortalErrorCode.NotFound, $"GenerateBlocksFromExternalSource: PlcSoftware not found at '{softwarePath}'");
@@ -6865,6 +7048,7 @@ namespace TiaMcpServer.Siemens
             }
 
             throw new PortalException(PortalErrorCode.OpennessError, "GenerateBlocksFromExternalSource: " + string.Join(" | ", failures.Take(10)));
+            });
         }
 
         private static IEnumerable<object?>? TryGetExternalSourcesCollection(PlcSoftware plcSoftware)
@@ -6928,6 +7112,8 @@ namespace TiaMcpServer.Siemens
 
         public CompilerResult CompileSoftware(string softwarePath, string password = "", int timeoutSeconds = 600)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation($"Compiling software by path: {softwarePath}");
 
             if (IsProjectNull())
@@ -7016,6 +7202,7 @@ namespace TiaMcpServer.Siemens
                 resolvedSoftware == null
                     ? $"SoftwareContainer or Software not found for path '{softwarePath}'"
                     : $"Software at '{softwarePath}' is not PlcSoftware. Type={resolvedSoftware.GetType().FullName}");
+            });
         }
 
         #endregion

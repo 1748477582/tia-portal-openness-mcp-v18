@@ -63,12 +63,37 @@ namespace TiaMcpServer.Siemens
         private readonly ILogger<Portal>? _logger;
         public string? LastConnectError { get; private set; }
 
+        // #1 STA 线程模型：所有 Openness(COM) 访问都经此单 STA 线程执行。
+        // StaExecutor 内部带重入守卫——已在 STA 线程上时直接内联执行，故 Portal 内部互调不会死锁。
+        private readonly StaExecutor _sta = new StaExecutor();
+
+        // G1 输入校验：PLC 块名/标识符白名单校验（审计 3.5）。
+        // 拒绝空、空白、超长（>64）、以及含空白/控制字符或路径类特殊字符的名称，
+        // 避免把非法标识符传入 Openness 触发异常或被用作路径注入。
+        private static void ValidateBlockName(string blockName, string context)
+        {
+            if (string.IsNullOrWhiteSpace(blockName))
+                throw new PortalException(PortalErrorCode.InvalidParams, $"{context}: blockName is empty");
+            var name = blockName.Trim();
+            if (name.Length > 64)
+                throw new PortalException(PortalErrorCode.InvalidParams, $"{context}: blockName too long (max 64 chars): '{name}'");
+            foreach (var c in name)
+            {
+                if (char.IsWhiteSpace(c) || char.IsControl(c) || "/\\:*?\"<>|".IndexOf(c) >= 0)
+                    throw new PortalException(PortalErrorCode.InvalidParams,
+                        $"{context}: blockName contains illegal character '{c}' (allowed: A-Z a-z 0-9 _ and no spaces / \\ : * ? \" < > |): '{name}'");
+            }
+        }
+
         #region Q5 software-path cache LRU helpers
 
         // Marks a cache key as recently used (called on every cache hit).
         private void CacheTouch(string softwarePath)
         {
+            _sta.Run(() =>
+            {
             _cacheLastAccess[softwarePath] = DateTime.UtcNow;
+            });
         }
 
         // Call after inserting a new entry: if the cache exceeds its configured upper bound,
@@ -76,6 +101,8 @@ namespace TiaMcpServer.Siemens
         // so the cost is negligible at the configured sizes (default 64).
         private void CacheEvictIfNeeded()
         {
+            _sta.Run(() =>
+            {
             if (_cacheMaxEntries <= 0 || _softwareContainerCache.Count <= _cacheMaxEntries) return;
             lock (_cacheEvictLock)
             {
@@ -97,12 +124,16 @@ namespace TiaMcpServer.Siemens
                     _logger?.LogDebug($"Q5: software-path cache evicted '{oldestKey}' (bound {_cacheMaxEntries}, now {_softwareContainerCache.Count}).");
                 }
             }
+            });
         }
 
         private void CacheClearAll()
         {
+            _sta.Run(() =>
+            {
             _softwareContainerCache.Clear();
             _cacheLastAccess.Clear();
+            });
         }
 
         #endregion
@@ -181,6 +212,15 @@ namespace TiaMcpServer.Siemens
         {
             try
             {
+                _sta.Dispose();
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Error disposing STA executor on Dispose");
+            }
+
+            try
+            {
                 (_project as Project)?.Close();
             }
             catch (Exception ex)
@@ -228,6 +268,8 @@ namespace TiaMcpServer.Siemens
 
         public bool ConnectPortal()
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Connecting to TIA Portal...");
 
             try
@@ -345,10 +387,13 @@ namespace TiaMcpServer.Siemens
                 // 统一错误处理：硬失败抛结构化异常，替代 return false + LastConnectError 侧信道
                 throw new PortalException(PortalErrorCode.OpennessError, $"ConnectPortal failed: {FormatExceptionDetail(ex)}", inner: ex);
             }
+            });
         }
 
         public List<string> ListPortalProcessProjects()
         {
+            return _sta.Run(() =>
+            {
             var lines = new List<string>();
             IReadOnlyList<TiaPortalProcess> processes;
             try
@@ -420,15 +465,21 @@ namespace TiaMcpServer.Siemens
             }
 
             return lines;
+            });
         }
 
         public bool IsConnected()
         {
+            return _sta.Run(() =>
+            {
             return _portal != null;
+            });
         }
 
         public bool DisconnectPortal()
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Disconnecting from TIA Portal...");
             return Operation.Run(_logger, nameof(DisconnectPortal), () =>
             {
@@ -436,6 +487,7 @@ namespace TiaMcpServer.Siemens
                 _session = null;
                 _portal?.Dispose();
                 _portal = null;
+            });
             });
         }
 
@@ -445,6 +497,8 @@ namespace TiaMcpServer.Siemens
 
         public State GetState()
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Getting TIA Portal state...");
             if (_portal != null)
             {
@@ -494,10 +548,13 @@ namespace TiaMcpServer.Siemens
                 Project = _project != null ? _project.Name : "-",
                 Session = _session != null ? _session.Project.Name : "-"
             };
+            });
         }
 
         public bool AttachToOpenProject(string projectName)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation($"Attaching to open project: {projectName}");
 
             if (string.IsNullOrWhiteSpace(projectName)) return false;
@@ -547,10 +604,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return false;
+            });
         }
 
         private bool TryAttachProjectInPortal(TiaPortal portal, string projectName)
         {
+            return _sta.Run(() =>
+            {
             try
             {
                 foreach (var s in portal.LocalSessions)
@@ -585,6 +645,7 @@ namespace TiaMcpServer.Siemens
             catch { }
 
             return false;
+            });
         }
 
         #endregion
@@ -593,6 +654,8 @@ namespace TiaMcpServer.Siemens
 
         public List<ProjectBase> GetProjects()
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Getting open projects...");
 
             if (_portal == null)
@@ -613,10 +676,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return projects;
+            });
         }
 
         public bool OpenProject(string projectPath)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation($"Opening project: {projectPath}");
 
             if (IsPortalNull())
@@ -724,10 +790,13 @@ namespace TiaMcpServer.Siemens
                 LastConnectError = ex.ToString();
                 return false;
             }
+            });
         }
 
         public bool CreateProject(string directoryPath, string projectName)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation($"Creating project: dir={directoryPath}, name={projectName}");
 
             if (IsPortalNull())
@@ -761,6 +830,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "CreateProject failed: dir={Dir}, name={Name}", directoryPath, projectName);
                 return false;
             }
+            });
         }
 
         public object? GetProjectInfo()
@@ -794,6 +864,8 @@ namespace TiaMcpServer.Siemens
 
         public bool SaveProject()
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Saving project...");
 
             if (IsProjectNull())
@@ -804,10 +876,13 @@ namespace TiaMcpServer.Siemens
             (_project as Project)?.Save();
 
             return true;
+            });
         }
 
         public bool SaveAsProject(string path)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation($"Saving project as: {path}");
 
             if (IsProjectNull())
@@ -820,10 +895,13 @@ namespace TiaMcpServer.Siemens
             (_project as Project)?.SaveAs(di);
 
             return true;
+            });
         }
 
         public bool CloseProject()
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Closing project...");
 
             if (IsProjectNull())
@@ -835,6 +913,7 @@ namespace TiaMcpServer.Siemens
             _project = null;
 
             return true;
+            });
         }
 
         #endregion
@@ -843,6 +922,8 @@ namespace TiaMcpServer.Siemens
 
         public List<ProjectBase> GetSessions()
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Getting open local sessions...");
 
             if (IsPortalNull())
@@ -861,10 +942,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return sessions;
+            });
         }
 
         public bool OpenSession(string localSessionPath)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation($"Opening session: {localSessionPath}");
 
             if (IsPortalNull())
@@ -887,11 +971,11 @@ namespace TiaMcpServer.Siemens
 
                 if (!string.IsNullOrEmpty(sessionName) && sessions.Any(s => s.Name.Equals(sessionName)))
                 {
-                    // Session is already open  
+                    // Session is already open
                     _session = _portal?.LocalSessions.FirstOrDefault(s => s.Project.Name == sessionName);
                     if (_session != null)
                     {
-                        // Correctly cast MultiuserProject to Project  
+                        // Correctly cast MultiuserProject to Project
                         _project = _session.Project;
                         return _project != null;
                     }
@@ -914,10 +998,14 @@ namespace TiaMcpServer.Siemens
             }
 
             return false;
+
+            });
         }
 
         public bool SaveSession()
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Saving session...");
 
             if (IsSessionNull())
@@ -929,10 +1017,13 @@ namespace TiaMcpServer.Siemens
             _session?.Save();
 
             return true;
+            });
         }
 
         public bool CloseSession()
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Closing session...");
 
             if (IsSessionNull())
@@ -945,6 +1036,7 @@ namespace TiaMcpServer.Siemens
             _session = null;
 
             return true;
+            });
         }
 
         #endregion

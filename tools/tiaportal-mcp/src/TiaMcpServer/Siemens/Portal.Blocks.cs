@@ -145,6 +145,8 @@ namespace TiaMcpServer.Siemens
 
         public string GetBlockPath(PlcBlock block)
         {
+            return _sta.Run(() =>
+            {
             if (block == null)
             {
                 return string.Empty;
@@ -157,10 +159,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return block.Name;
+            });
         }
 
         public List<PlcBlock> GetBlocks(string softwarePath, string regexName = "")
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Getting blocks...");
 
             if (IsProjectNull())
@@ -189,6 +194,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return list;
+            });
         }
 
         public PlcBlockGroup? GetBlockRootGroup(string softwarePath)
@@ -218,6 +224,8 @@ namespace TiaMcpServer.Siemens
 
         public List<PlcType> GetTypes(string softwarePath, string regexName = "")
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Getting types...");
 
             if (IsProjectNull())
@@ -246,6 +254,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return list;
+            });
         }
 
         public PlcBlock? ExportBlock(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
@@ -402,12 +411,20 @@ namespace TiaMcpServer.Siemens
 
         public bool ImportBlock(string softwarePath, string groupPath, string importPath)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation($"Importing block from path: {importPath}");
 
             try
             {
                 if (IsProjectNull())
                     throw new PortalException(PortalErrorCode.InvalidState, "No project is open. If a project is already open in the TIA Portal UI, call AttachToOpenProject(projectName); otherwise call OpenProject(path) for a local .apXX project, or CreateProject to start a new one. (Connect is attempted automatically.)");
+
+                if (!File.Exists(importPath))
+                    throw new PortalException(PortalErrorCode.InvalidParams, $"Import file not found: {importPath}");
+                var importFi = new FileInfo(importPath);
+                if (importFi.Length > 10 * 1024 * 1024)
+                    throw new PortalException(PortalErrorCode.InvalidParams, $"Import file too large ({importFi.Length} bytes, max 10 MB): {importPath}");
 
                 var softwareContainer = GetSoftwareContainer(softwarePath);
                 if (softwareContainer?.Software is not PlcSoftware plcSoftware)
@@ -443,6 +460,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(pex, "ImportBlock failed for {SoftwarePath} group={GroupPath} file={ImportPath}: {Inner}", softwarePath, groupPath, importPath, inner);
                 throw pex;
             }
+            });
         }
 
         /// <summary>
@@ -454,6 +472,8 @@ namespace TiaMcpServer.Siemens
         /// </summary>
         public string ExportBlockSourceUtf8(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
         {
+            return _sta.Run(() =>
+            {
             try
             {
                 if (IsProjectNull())
@@ -490,6 +510,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(pex, "ExportBlockSourceUtf8 failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
                 throw pex;
             }
+            });
         }
 
         /// <summary>
@@ -502,6 +523,8 @@ namespace TiaMcpServer.Siemens
         /// </summary>
         public bool RegenerateBlockFromSource(string softwarePath, string groupPath, string sourceFilePath)
         {
+            return _sta.Run(() =>
+            {
             try
             {
                 if (IsProjectNull())
@@ -509,6 +532,10 @@ namespace TiaMcpServer.Siemens
 
                 if (!File.Exists(sourceFilePath))
                     throw new PortalException(PortalErrorCode.InvalidParams, $"Source file not found: {sourceFilePath}");
+
+                var srcFi = new FileInfo(sourceFilePath);
+                if (srcFi.Length > 10 * 1024 * 1024)
+                    throw new PortalException(PortalErrorCode.InvalidParams, $"Source file too large ({srcFi.Length} bytes, max 10 MB): {sourceFilePath}");
 
                 // Normalize to UTF-8 WITH BOM in place (re-import reads this copy).
                 NormalizeToUtf8Bom(sourceFilePath);
@@ -522,6 +549,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(pex, "RegenerateBlockFromSource failed for {SoftwarePath} group={GroupPath} file={ImportPath}", softwarePath, groupPath, sourceFilePath);
                 throw pex;
             }
+            });
         }
 
         /// <summary>
@@ -569,6 +597,8 @@ namespace TiaMcpServer.Siemens
 
         public ResponseImportBatch ImportBlocksFromDirectory(string softwarePath, string groupPath, string dir, string regexName = "", bool overwrite = true)
         {
+            return _sta.Run(() =>
+            {
             var imported = new List<string>();
             var failed = new List<ImportFailure>();
 
@@ -663,10 +693,13 @@ namespace TiaMcpServer.Siemens
                 failed.Add(new ImportFailure { Path = dir, Error = ex.ToString() });
                 return new ResponseImportBatch { Imported = imported, Failed = failed };
             }
+            });
         }
 
         public bool ImportType(string softwarePath, string groupPath, string importPath)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation($"Importing type from path: {importPath}");
 
             try
@@ -705,6 +738,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(pex, "ImportType failed for {SoftwarePath} group={GroupPath} file={ImportPath}", softwarePath, groupPath, importPath);
                 throw pex;
             }
+            });
         }
 
         public IEnumerable<PlcBlock>? ExportBlocks(string softwarePath, string exportPath, string regexName = "", bool preservePath = false)
@@ -985,101 +1019,104 @@ namespace TiaMcpServer.Siemens
 
         public bool ExportAsDocuments(string softwarePath, string blockPath, string exportPath, bool preservePath = false)
         {
-            _logger?.LogInformation($"Exporting block as documents by path: {blockPath}");
-            var success = false;
-            try
+            return _sta.Run(() =>
             {
-                if (IsProjectNull())
-                {
-                    throw new PortalException(PortalErrorCode.InvalidState, "No project is open. If a project is already open in the TIA Portal UI, call AttachToOpenProject(projectName); otherwise call OpenProject(path) for a local .apXX project, or CreateProject to start a new one. (Connect is attempted automatically.)");
-                }
-
-                Capability.RequireSupported(TiaFeature.DocumentExport);
-
-                
-                var softwareContainer = GetSoftwareContainer(softwarePath);
-                if (softwareContainer?.Software is PlcSoftware plcSoftware)
-                {
-                    if (plcSoftware != null)
-                    {
-                        // Export code blocks as documents
-                        // https://docs.tia.siemens.cloud/r/en-us/v20/creating-and-managing-blocks/exporting-and-importing-blocks-in-simatic-sd-format-s7-1200-s7-1500/exporting-and-importing-blocks-in-simatic-sd-format-s7-1200-s7-1500
-
-                        var groupPath = blockPath.Contains("/") ? blockPath.Substring(0, blockPath.LastIndexOf("/")) : string.Empty;
-                        var blockName = blockPath.Contains("/") ? blockPath.Substring(blockPath.LastIndexOf("/") + 1) : blockPath;
-
-                        var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
-
-                        //group?.Blocks.ForEach(b => Console.WriteLine($"Block: {b.Name}, Type: {b.GetType().Name}"));
-
-                        // join exportPath and groupPath
-                        if (!Directory.Exists(exportPath))
-                        {
-                            Directory.CreateDirectory(exportPath);
-                        }
-
-                        if (preservePath && !string.IsNullOrEmpty(groupPath))
-                        {
-                            exportPath = Path.Combine(exportPath, groupPath);
-
-                            if (!Directory.Exists(exportPath))
-                            {
-                                Directory.CreateDirectory(exportPath);
-                            }
-                        }
-
+                        _logger?.LogInformation($"Exporting block as documents by path: {blockPath}");
+                        var success = false;
                         try
                         {
-                            // delete files s7dcl/s7res if already exists
-                            var blockFiles7dclPath = Path.Combine(exportPath, $"{blockName}.s7dcl");
-                            if (File.Exists(blockFiles7dclPath))
+                            if (IsProjectNull())
                             {
-                                File.Delete(blockFiles7dclPath);
-                            }
-                            var blockFiles7resPath = Path.Combine(exportPath, $"{blockName}.s7res");
-                            if (File.Exists(blockFiles7resPath))
-                            {
-                                File.Delete(blockFiles7resPath);
+                                throw new PortalException(PortalErrorCode.InvalidState, "No project is open. If a project is already open in the TIA Portal UI, call AttachToOpenProject(projectName); otherwise call OpenProject(path) for a local .apXX project, or CreateProject to start a new one. (Connect is attempted automatically.)");
                             }
 
-#if !TIA_V18
-                            var result = group?.Blocks.Find(blockName)?.ExportAsDocuments(new DirectoryInfo(exportPath), blockName);
-                            if (result != null && result.State == DocumentResultState.Success)
+                            Capability.RequireSupported(TiaFeature.DocumentExport);
+
+
+                            var softwareContainer = GetSoftwareContainer(softwarePath);
+                            if (softwareContainer?.Software is PlcSoftware plcSoftware)
                             {
-                                success = true;
+                                if (plcSoftware != null)
+                                {
+                                    // Export code blocks as documents
+                                    // https://docs.tia.siemens.cloud/r/en-us/v20/creating-and-managing-blocks/exporting-and-importing-blocks-in-simatic-sd-format-s7-1200-s7-1500/exporting-and-importing-blocks-in-simatic-sd-format-s7-1200-s7-1500
+
+                                    var groupPath = blockPath.Contains("/") ? blockPath.Substring(0, blockPath.LastIndexOf("/")) : string.Empty;
+                                    var blockName = blockPath.Contains("/") ? blockPath.Substring(blockPath.LastIndexOf("/") + 1) : blockPath;
+
+                                    var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
+
+                                    //group?.Blocks.ForEach(b => Console.WriteLine($"Block: {b.Name}, Type: {b.GetType().Name}"));
+
+                                    // join exportPath and groupPath
+                                    if (!Directory.Exists(exportPath))
+                                    {
+                                        Directory.CreateDirectory(exportPath);
+                                    }
+
+                                    if (preservePath && !string.IsNullOrEmpty(groupPath))
+                                    {
+                                        exportPath = Path.Combine(exportPath, groupPath);
+
+                                        if (!Directory.Exists(exportPath))
+                                        {
+                                            Directory.CreateDirectory(exportPath);
+                                        }
+                                    }
+
+                                    try
+                                    {
+                                        // delete files s7dcl/s7res if already exists
+                                        var blockFiles7dclPath = Path.Combine(exportPath, $"{blockName}.s7dcl");
+                                        if (File.Exists(blockFiles7dclPath))
+                                        {
+                                            File.Delete(blockFiles7dclPath);
+                                        }
+                                        var blockFiles7resPath = Path.Combine(exportPath, $"{blockName}.s7res");
+                                        if (File.Exists(blockFiles7resPath))
+                                        {
+                                            File.Delete(blockFiles7resPath);
+                                        }
+
+            #if !TIA_V18
+                                        var result = group?.Blocks.Find(blockName)?.ExportAsDocuments(new DirectoryInfo(exportPath), blockName);
+                                        if (result != null && result.State == DocumentResultState.Success)
+                                        {
+                                            success = true;
+                                        }
+            #else
+                                        throw new PortalException(PortalErrorCode.NotSupportedOnVersion, "ExportAsDocuments requires TIA Portal V20 or newer");
+            #endif
+                                    }
+                                    catch (EngineeringNotSupportedException ex)
+                                    {
+                                        // The export or import of blocks with mixed programming languages is not possible
+                                        throw new PortalException(PortalErrorCode.ExportFailed, $"EngineeringNotSupportedException at block '{blockName}'. {ex.Message}", null, ex);
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        throw new PortalException(PortalErrorCode.ExportFailed, $"Exception at block '{blockName}'. {ex.Message}", null, ex);
+                                    }
+
+                                }
+
                             }
-#else
-                            throw new PortalException(PortalErrorCode.NotSupportedOnVersion, "ExportAsDocuments requires TIA Portal V20 or newer");
-#endif
-                        }
-                        catch (EngineeringNotSupportedException ex)
-                        {
-                            // The export or import of blocks with mixed programming languages is not possible
-                            throw new PortalException(PortalErrorCode.ExportFailed, $"EngineeringNotSupportedException at block '{blockName}'. {ex.Message}", null, ex);
+
+
                         }
                         catch (Exception ex)
                         {
-                            throw new PortalException(PortalErrorCode.ExportFailed, $"Exception at block '{blockName}'. {ex.Message}", null, ex);
+                            var pex = ex as PortalException ?? new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
+
+                            pex.Data["softwarePath"] = softwarePath;
+                            pex.Data["blockPath"] = blockPath;
+                            pex.Data["exportPath"] = exportPath;
+
+                            _logger?.LogError(pex, "ExportAsDocuments failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
+                            throw pex;
                         }
-
-                    }
-
-                }
-
-
-            }
-            catch (Exception ex)
-            {
-                var pex = ex as PortalException ?? new PortalException(PortalErrorCode.ExportFailed, "Export failed", null, ex);
-
-                pex.Data["softwarePath"] = softwarePath;
-                pex.Data["blockPath"] = blockPath;
-                pex.Data["exportPath"] = exportPath;
-
-                _logger?.LogError(pex, "ExportAsDocuments failed for {SoftwarePath} {BlockPath} -> {ExportPath}", softwarePath, blockPath, exportPath);
-                throw pex;
-            }
-            return success;
+                        return success;
+            });
         }
 
         // TIA portal crashes when exporting blocks as documents, :-(
@@ -1247,114 +1284,117 @@ namespace TiaMcpServer.Siemens
 
         public bool ImportFromDocuments(string softwarePath, string groupPath, string importPath, string fileNameWithoutExtension, ImportDocumentOptions option)
         {
-            _logger?.LogInformation($"Importing block from documents: {fileNameWithoutExtension} in {importPath}");
+            return _sta.Run(() =>
+            {
+                        _logger?.LogInformation($"Importing block from documents: {fileNameWithoutExtension} in {importPath}");
 
-            if (IsProjectNull())
-            {
-                return false;
-            }
-
-            if (Engineering.TiaMajorVersion < 20)
-            {
-                _logger?.LogWarning("ImportFromDocuments is only supported on TIA Portal V20 or newer");
-                return false;
-            }
-
-            var softwareContainer = GetSoftwareContainer(softwarePath);
-            if (!(softwareContainer?.Software is PlcSoftware plcSoftware))
-            {
-                throw new PortalException(PortalErrorCode.NotFound, $"PLC software '{softwarePath}' not found. Use GetProjectTree for the exact PLC name.");
-            }
-
-            var dir = new DirectoryInfo(importPath);
-            if (!dir.Exists)
-            {
-                throw new PortalException(PortalErrorCode.InvalidParams, $"Import directory does not exist: {importPath}");
-            }
-            if (!File.Exists(Path.Combine(importPath, fileNameWithoutExtension + ".s7dcl")))
-            {
-                throw new PortalException(PortalErrorCode.InvalidParams, $"No '{fileNameWithoutExtension}.s7dcl' found under {importPath}. importPath is the DIRECTORY holding the .s7dcl/.s7res, and fileNameWithoutExtension omits the extension.");
-            }
-
-            // Resolve the target group. Empty path = root. A non-empty path that does NOT resolve is a
-            // caller error — DO NOT silently retarget root (that is how a nested-group import used to
-            // land the block at root and get AutoNumber-renumbered).
-            PlcBlockGroup targetGroup;
-            if (string.IsNullOrWhiteSpace(groupPath))
-            {
-                targetGroup = plcSoftware.BlockGroup;
-            }
-            else
-            {
-                targetGroup = GetPlcBlockGroupByPath(softwarePath, groupPath)
-                    ?? throw new PortalException(PortalErrorCode.NotFound,
-                        $"Group path '{groupPath}' not found under PLC '{softwarePath}'. Use GetSoftwareTree for exact group names, or pass an empty groupPath to import at the root.");
-            }
-
-            // Capture the existing block's identity BEFORE import. Openness Override, when the block
-            // lives in a different group than the import target, deletes+recreates it (losing its
-            // number and original group). We restore the number afterwards so callers/instance DBs
-            // and the project tree stay stable.
-            var existing = FindBlockRecursive(plcSoftware.BlockGroup, fileNameWithoutExtension);
-            int? prevNumber = null;
-            bool prevAutoNumber = false;
-            try { if (existing != null) { prevNumber = existing.Number; prevAutoNumber = existing.AutoNumber; } } catch { }
-
-            DocumentImportResult? result;
-            try
-            {
-#if !TIA_V18
-                result = targetGroup.Blocks.ImportFromDocuments(dir, fileNameWithoutExtension, option);
-#else
-                result = null;
-                throw new PortalException(PortalErrorCode.NotSupportedOnVersion, "ImportFromDocuments requires TIA Portal V20 or newer");
-#endif
-            }
-            catch (EngineeringNotSupportedException ex)
-            {
-                throw new PortalException(PortalErrorCode.NotSupportedOnVersion, $"ImportFromDocuments not supported for '{fileNameWithoutExtension}': {ex.Message}", null, ex);
-            }
-            catch (EngineeringTargetInvocationException ex)
-            {
-                throw new PortalException(PortalErrorCode.ImportFailed, $"ImportFromDocuments failed for '{fileNameWithoutExtension}' into group '{(string.IsNullOrWhiteSpace(groupPath) ? "<root>" : groupPath)}': {ex.Message}. Check the .s7dcl syntax (types/attributes) and that .s7res matches the S7_MLC ids.", null, ex);
-            }
-            catch (Exception ex)
-            {
-                throw new PortalException(PortalErrorCode.ImportFailed, $"ImportFromDocuments failed for '{fileNameWithoutExtension}' into group '{(string.IsNullOrWhiteSpace(groupPath) ? "<root>" : groupPath)}': {ex.Message}", null, ex);
-            }
-
-            if (result == null || result.State != DocumentResultState.Success)
-            {
-                throw new PortalException(PortalErrorCode.ImportFailed,
-                    $"ImportFromDocuments returned state '{result?.State.ToString() ?? "null"}' for '{fileNameWithoutExtension}'. The document set was not imported.");
-            }
-
-            // Restore the original block number if Override renumbered it (symbolic/optimized blocks
-            // are addressed by name, so this is cosmetic-but-important for a stable, diffable project).
-            if (prevNumber.HasValue)
-            {
-                var imported = FindBlockRecursive(plcSoftware.BlockGroup, fileNameWithoutExtension);
-                if (imported != null)
-                {
-                    try
-                    {
-                        if (imported.Number != prevNumber.Value)
+                        if (IsProjectNull())
                         {
-                            imported.AutoNumber = false;
-                            imported.Number = prevNumber.Value;
+                            return false;
+                        }
+
+                        if (Engineering.TiaMajorVersion < 20)
+                        {
+                            _logger?.LogWarning("ImportFromDocuments is only supported on TIA Portal V20 or newer");
+                            return false;
+                        }
+
+                        var softwareContainer = GetSoftwareContainer(softwarePath);
+                        if (!(softwareContainer?.Software is PlcSoftware plcSoftware))
+                        {
+                            throw new PortalException(PortalErrorCode.NotFound, $"PLC software '{softwarePath}' not found. Use GetProjectTree for the exact PLC name.");
+                        }
+
+                        var dir = new DirectoryInfo(importPath);
+                        if (!dir.Exists)
+                        {
+                            throw new PortalException(PortalErrorCode.InvalidParams, $"Import directory does not exist: {importPath}");
+                        }
+                        if (!File.Exists(Path.Combine(importPath, fileNameWithoutExtension + ".s7dcl")))
+                        {
+                            throw new PortalException(PortalErrorCode.InvalidParams, $"No '{fileNameWithoutExtension}.s7dcl' found under {importPath}. importPath is the DIRECTORY holding the .s7dcl/.s7res, and fileNameWithoutExtension omits the extension.");
+                        }
+
+                        // Resolve the target group. Empty path = root. A non-empty path that does NOT resolve is a
+                        // caller error — DO NOT silently retarget root (that is how a nested-group import used to
+                        // land the block at root and get AutoNumber-renumbered).
+                        PlcBlockGroup targetGroup;
+                        if (string.IsNullOrWhiteSpace(groupPath))
+                        {
+                            targetGroup = plcSoftware.BlockGroup;
                         }
                         else
                         {
-                            imported.AutoNumber = prevAutoNumber;
+                            targetGroup = GetPlcBlockGroupByPath(softwarePath, groupPath)
+                                ?? throw new PortalException(PortalErrorCode.NotFound,
+                                    $"Group path '{groupPath}' not found under PLC '{softwarePath}'. Use GetSoftwareTree for exact group names, or pass an empty groupPath to import at the root.");
                         }
-                    }
-                    catch (Exception ex)
-                    {
-                        _logger?.LogWarning(ex, $"Could not restore block number {prevNumber} for {fileNameWithoutExtension}");
-                    }
-                }
-            }
-            return true;
+
+                        // Capture the existing block's identity BEFORE import. Openness Override, when the block
+                        // lives in a different group than the import target, deletes+recreates it (losing its
+                        // number and original group). We restore the number afterwards so callers/instance DBs
+                        // and the project tree stay stable.
+                        var existing = FindBlockRecursive(plcSoftware.BlockGroup, fileNameWithoutExtension);
+                        int? prevNumber = null;
+                        bool prevAutoNumber = false;
+                        try { if (existing != null) { prevNumber = existing.Number; prevAutoNumber = existing.AutoNumber; } } catch { }
+
+                        DocumentImportResult? result;
+                        try
+                        {
+            #if !TIA_V18
+                            result = targetGroup.Blocks.ImportFromDocuments(dir, fileNameWithoutExtension, option);
+            #else
+                            result = null;
+                            throw new PortalException(PortalErrorCode.NotSupportedOnVersion, "ImportFromDocuments requires TIA Portal V20 or newer");
+            #endif
+                        }
+                        catch (EngineeringNotSupportedException ex)
+                        {
+                            throw new PortalException(PortalErrorCode.NotSupportedOnVersion, $"ImportFromDocuments not supported for '{fileNameWithoutExtension}': {ex.Message}", null, ex);
+                        }
+                        catch (EngineeringTargetInvocationException ex)
+                        {
+                            throw new PortalException(PortalErrorCode.ImportFailed, $"ImportFromDocuments failed for '{fileNameWithoutExtension}' into group '{(string.IsNullOrWhiteSpace(groupPath) ? "<root>" : groupPath)}': {ex.Message}. Check the .s7dcl syntax (types/attributes) and that .s7res matches the S7_MLC ids.", null, ex);
+                        }
+                        catch (Exception ex)
+                        {
+                            throw new PortalException(PortalErrorCode.ImportFailed, $"ImportFromDocuments failed for '{fileNameWithoutExtension}' into group '{(string.IsNullOrWhiteSpace(groupPath) ? "<root>" : groupPath)}': {ex.Message}", null, ex);
+                        }
+
+                        if (result == null || result.State != DocumentResultState.Success)
+                        {
+                            throw new PortalException(PortalErrorCode.ImportFailed,
+                                $"ImportFromDocuments returned state '{result?.State.ToString() ?? "null"}' for '{fileNameWithoutExtension}'. The document set was not imported.");
+                        }
+
+                        // Restore the original block number if Override renumbered it (symbolic/optimized blocks
+                        // are addressed by name, so this is cosmetic-but-important for a stable, diffable project).
+                        if (prevNumber.HasValue)
+                        {
+                            var imported = FindBlockRecursive(plcSoftware.BlockGroup, fileNameWithoutExtension);
+                            if (imported != null)
+                            {
+                                try
+                                {
+                                    if (imported.Number != prevNumber.Value)
+                                    {
+                                        imported.AutoNumber = false;
+                                        imported.Number = prevNumber.Value;
+                                    }
+                                    else
+                                    {
+                                        imported.AutoNumber = prevAutoNumber;
+                                    }
+                                }
+                                catch (Exception ex)
+                                {
+                                    _logger?.LogWarning(ex, $"Could not restore block number {prevNumber} for {fileNameWithoutExtension}");
+                                }
+                            }
+                        }
+                        return true;
+            });
         }
 
         /// <summary>Depth-first search for a block by exact name across all nested block groups.</summary>

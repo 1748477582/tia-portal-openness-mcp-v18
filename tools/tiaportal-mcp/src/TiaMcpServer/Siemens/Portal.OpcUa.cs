@@ -55,6 +55,8 @@ namespace TiaMcpServer.Siemens
 
         public ModelContextProtocol.ResponseJsonReport GetOpcUaConfig(string softwarePath)
         {
+            return _sta.Run(() =>
+            {
             var data = new JsonObject { ["softwarePath"] = softwarePath, ["timestamp"] = DateTime.Now.ToString("O") };
 
             if (IsProjectNull())
@@ -85,6 +87,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "GetOpcUaConfig failed for {SoftwarePath}", softwarePath);
                 return new ModelContextProtocol.ResponseJsonReport { Ok = false, Message = $"Error: {ex.Message}", Data = data };
             }
+            });
         }
 
         private static JsonArray CollectOpcUaItems(object? collection)
@@ -107,6 +110,8 @@ namespace TiaMcpServer.Siemens
 
         public ResponseMessage SetOpcUaInterfaceEnabled(string softwarePath, string interfaceName, bool enabled, string interfaceType = "ServerInterface")
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -140,10 +145,13 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "SetOpcUaInterfaceEnabled failed");
                 return new ResponseMessage { Message = $"Error: {ex.Message}" };
             }
+            });
         }
 
         public ResponseMessage ExportOpcUaInterface(string softwarePath, string interfaceName, string exportPath, string interfaceType = "ServerInterface")
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -178,10 +186,13 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "ExportOpcUaInterface failed");
                 return new ResponseMessage { Message = $"Export failed: {ex.Message}" };
             }
+            });
         }
 
         public ResponseMessage ImportOpcUaInterface(string softwarePath, string importPath, string interfaceType = "ServerInterface")
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new ResponseMessage { Message = "No project open." };
             var plc = GetPlcSoftware(softwarePath);
             if (plc == null) return new ResponseMessage { Message = $"PLC software not found: '{softwarePath}'." };
@@ -227,6 +238,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "ImportOpcUaInterface failed");
                 return new ResponseMessage { Message = $"Import failed: {ex.Message}" };
             }
+            });
         }
 
         private static object? FindByName(object? collection, string name)

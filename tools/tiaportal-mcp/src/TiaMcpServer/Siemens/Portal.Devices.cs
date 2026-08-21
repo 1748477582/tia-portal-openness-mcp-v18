@@ -45,6 +45,8 @@ namespace TiaMcpServer.Siemens
 
         public string GetProjectTree()
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Getting project tree...");
 
             if (IsProjectNull())
@@ -58,22 +60,22 @@ namespace TiaMcpServer.Siemens
 
             var ancestorStates = new List<bool>();
             var sections = new List<Action>();
-            
+
             if (_project?.Devices != null && _project.Devices.Count > 0)
             {
                 sections.Add(() => GetProjectTreeDevices(sb, _project.Devices, ancestorStates));
             }
-            
+
             if (_project?.DeviceGroups != null && _project.DeviceGroups.Count > 0)
             {
                 sections.Add(() => GetProjectTreeGroups(sb, _project.DeviceGroups, ancestorStates));
             }
-            
+
             if (_project?.UngroupedDevicesGroup != null)
             {
                 sections.Add(() => GetProjectTreeUngroupedDeviceGroup(sb, _project.UngroupedDevicesGroup, ancestorStates));
             }
-            
+
             for (int i = 0; i < sections.Count; i++)
             {
                 var isLastSection = i == sections.Count - 1;
@@ -88,12 +90,15 @@ namespace TiaMcpServer.Siemens
             }
 
             return sb.ToString();
+            });
         }
 
         
 
         public List<Device> GetDevices(string regexName = "")
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Getting devices...");
 
             if (IsProjectNull())
@@ -122,6 +127,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return list;
+            });
         }
 
         public Device? GetDevice(string devicePath)
@@ -139,6 +145,8 @@ namespace TiaMcpServer.Siemens
 
         public Device AddDevice(string orderNumber, string version, string deviceName)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation($"Adding device: {deviceName}, OrderNumber={orderNumber}, Version={version}");
             if (IsProjectNull()) throw new PortalException(PortalErrorCode.InvalidState, "No project is open. If a project is already open in the TIA Portal UI, call AttachToOpenProject(projectName); otherwise call OpenProject(path) for a local .apXX project, or CreateProject to start a new one. (Connect is attempted automatically.)");
 
@@ -250,6 +258,7 @@ namespace TiaMcpServer.Siemens
             {
                 throw new PortalException(PortalErrorCode.OpennessError, FormatExceptionDetail(ex), null, ex);
             }
+            });
         }
 
         public (Device? Device, string? MlfbUsed, string? VersionUsed, List<string> Attempts, string? Error) AddDeviceWithFallback(
@@ -341,6 +350,8 @@ namespace TiaMcpServer.Siemens
 
         public List<GsdDeviceCandidate> SearchInstalledGsdDevices(string keyword, int limit = 50)
         {
+            return _sta.Run(() =>
+            {
             var normalizedKeyword = (keyword ?? string.Empty).Trim();
             var results = new List<GsdDeviceCandidate>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -399,10 +410,13 @@ namespace TiaMcpServer.Siemens
                 .ThenBy(c => c.Description)
                 .Take(Math.Max(1, limit))
                 .ToList();
+            });
         }
 
         public List<HardwareCatalogCandidate> SearchHardwareCatalog(string keyword, int limit = 50)
         {
+            return _sta.Run(() =>
+            {
             var normalizedKeyword = (keyword ?? string.Empty).Trim();
             var results = new List<HardwareCatalogCandidate>();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -451,6 +465,7 @@ namespace TiaMcpServer.Siemens
                 .ThenBy(c => c.Description)
                 .Take(Math.Max(1, limit))
                 .ToList();
+            });
         }
 
         public (Device? Device, HardwareCatalogCandidate? Candidate, List<HardwareCatalogCandidate> Candidates, List<string> Attempts, string? Error)
@@ -882,6 +897,8 @@ namespace TiaMcpServer.Siemens
 
         public string GetDeviceItemTree(string deviceItemPath, int maxDepth = 4)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation($"Getting device item tree by path: {deviceItemPath}, depth={maxDepth}");
 
             if (IsProjectNull())
@@ -899,6 +916,7 @@ namespace TiaMcpServer.Siemens
             sb.AppendLine($"{root.Name} [DeviceItem]");
             BuildDeviceItemTree(sb, root, new List<bool>(), 0, Math.Max(0, maxDepth));
             return sb.ToString();
+            });
         }
 
         public List<ModelContextProtocol.NetworkAttribute>? GetDeviceItemNetworkInfo(string deviceItemPath)
@@ -952,86 +970,89 @@ namespace TiaMcpServer.Siemens
         // SECURITY: path traversal (..) is blocked; exportPath must be a valid file path.
         public ModelContextProtocol.CaxExportResult ExportDeviceConfigurationAml(string devicePath, string exportPath)
         {
-            if (IsProjectNull())
+            return _sta.Run(() =>
             {
-                throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
-            }
+                        if (IsProjectNull())
+                        {
+                            throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
+                        }
 
-            var device = Guard.RequireNotNull(GetDevice(devicePath), "Device", devicePath);
+                        var device = Guard.RequireNotNull(GetDevice(devicePath), "Device", devicePath);
 
-            // SECURITY: Reject path traversal attempts (..) in user-provided paths
-            if (string.IsNullOrWhiteSpace(exportPath))
-                throw new PortalException(PortalErrorCode.InvalidParams, "exportPath must not be empty.");
+                        // SECURITY: Reject path traversal attempts (..) in user-provided paths
+                        if (string.IsNullOrWhiteSpace(exportPath))
+                            throw new PortalException(PortalErrorCode.InvalidParams, "exportPath must not be empty.");
 
-            if (exportPath.Contains(".."))
-                throw new PortalException(PortalErrorCode.InvalidParams, "Path traversal denied: exportPath must not contain '..' components.");
+                        if (exportPath.Contains(".."))
+                            throw new PortalException(PortalErrorCode.InvalidParams, "Path traversal denied: exportPath must not contain '..' components.");
 
-            // Resolve final file path: treat a directory or extension-less path as a folder, else use as-is.
-            string filePath;
-            if (Directory.Exists(exportPath) || string.IsNullOrEmpty(Path.GetExtension(exportPath)))
-            {
-                var safeName = string.Concat((device.Name ?? "device").Split(Path.GetInvalidFileNameChars()));
-                filePath = Path.Combine(exportPath, $"{safeName}.aml");
-            }
-            else
-            {
-                filePath = exportPath;
-            }
+                        // Resolve final file path: treat a directory or extension-less path as a folder, else use as-is.
+                        string filePath;
+                        if (Directory.Exists(exportPath) || string.IsNullOrEmpty(Path.GetExtension(exportPath)))
+                        {
+                            var safeName = string.Concat((device.Name ?? "device").Split(Path.GetInvalidFileNameChars()));
+                            filePath = Path.Combine(exportPath, $"{safeName}.aml");
+                        }
+                        else
+                        {
+                            filePath = exportPath;
+                        }
 
-            // Normalize to full path
-            var fullPath = Path.GetFullPath(filePath);
+                        // Normalize to full path
+                        var fullPath = Path.GetFullPath(filePath);
 
-            var dir = Path.GetDirectoryName(fullPath);
-            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
-            if (File.Exists(fullPath)) File.Delete(fullPath);
+                        var dir = Path.GetDirectoryName(fullPath);
+                        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+                        if (File.Exists(fullPath)) File.Delete(fullPath);
 
-            var cax = _project!.GetService<CaxProvider>();
-            if (cax == null)
-            {
-                throw new PortalException(PortalErrorCode.InvalidState, "CAx/AML export service is not available for this project");
-            }
+                        var cax = _project!.GetService<CaxProvider>();
+                        if (cax == null)
+                        {
+                            throw new PortalException(PortalErrorCode.InvalidState, "CAx/AML export service is not available for this project");
+                        }
 
-#if !TIA_V18
-            var result = cax.Export(device, new FileInfo(fullPath));
-            var messageLines = FlattenTransferMessages(result?.Messages);
-            var state = result?.State.ToString() ?? "Unknown";
-            var ok = result != null && result.State != TransferResultState.Error;
+            #if !TIA_V18
+                        var result = cax.Export(device, new FileInfo(fullPath));
+                        var messageLines = FlattenTransferMessages(result?.Messages);
+                        var state = result?.State.ToString() ?? "Unknown";
+                        var ok = result != null && result.State != TransferResultState.Error;
 
-            if (!ok && !File.Exists(fullPath))
-            {
-                throw new PortalException(PortalErrorCode.ExportFailed,
-                    $"CAx/AML export failed (state={state}): " + (messageLines.Count > 0 ? string.Join(" | ", messageLines) : "no detail returned"));
-            }
+                        if (!ok && !File.Exists(fullPath))
+                        {
+                            throw new PortalException(PortalErrorCode.ExportFailed,
+                                $"CAx/AML export failed (state={state}): " + (messageLines.Count > 0 ? string.Join(" | ", messageLines) : "no detail returned"));
+                        }
 
-            return new ModelContextProtocol.CaxExportResult
-            {
-                DeviceName = device.Name ?? devicePath,
-                FilePath = fullPath,
-                Success = ok,
-                State = state,
-                ErrorCount = result?.ErrorCount ?? 0,
-                WarningCount = result?.WarningCount ?? 0,
-                Messages = messageLines
-            };
-#else
-            var exportMethod = cax.GetType().GetMethod("Export");
-            if (exportMethod == null)
-                throw new PortalException(PortalErrorCode.ExportFailed, "CAx Export method not found");
-            var v18Result = exportMethod.Invoke(cax, new object[] { device, new FileInfo(fullPath) });
-            bool ok = v18Result is bool b ? b : File.Exists(fullPath);
-            if (!ok && !File.Exists(fullPath))
-                throw new PortalException(PortalErrorCode.ExportFailed, "CAx/AML export failed on V18");
-            return new ModelContextProtocol.CaxExportResult
-            {
-                DeviceName = device.Name ?? devicePath,
-                FilePath = fullPath,
-                Success = ok,
-                State = ok ? "Success" : "Error",
-                ErrorCount = ok ? 0 : 1,
-                WarningCount = 0,
-                Messages = new List<string>()
-            };
-#endif
+                        return new ModelContextProtocol.CaxExportResult
+                        {
+                            DeviceName = device.Name ?? devicePath,
+                            FilePath = fullPath,
+                            Success = ok,
+                            State = state,
+                            ErrorCount = result?.ErrorCount ?? 0,
+                            WarningCount = result?.WarningCount ?? 0,
+                            Messages = messageLines
+                        };
+            #else
+                        var exportMethod = cax.GetType().GetMethod("Export");
+                        if (exportMethod == null)
+                            throw new PortalException(PortalErrorCode.ExportFailed, "CAx Export method not found");
+                        var v18Result = exportMethod.Invoke(cax, new object[] { device, new FileInfo(fullPath) });
+                        bool ok = v18Result is bool b ? b : File.Exists(fullPath);
+                        if (!ok && !File.Exists(fullPath))
+                            throw new PortalException(PortalErrorCode.ExportFailed, "CAx/AML export failed on V18");
+                        return new ModelContextProtocol.CaxExportResult
+                        {
+                            DeviceName = device.Name ?? devicePath,
+                            FilePath = fullPath,
+                            Success = ok,
+                            State = ok ? "Success" : "Error",
+                            ErrorCount = ok ? 0 : 1,
+                            WarningCount = 0,
+                            Messages = new List<string>()
+                        };
+            #endif
+            });
         }
 
         private static List<string> FlattenTransferMessages(IEnumerable<TransferResultMessage>? messages)
@@ -1053,6 +1074,8 @@ namespace TiaMcpServer.Siemens
 
         public ResponseMessage SetDeviceItemAttribute(string deviceItemPath, string attributeName, string value)
         {
+            return _sta.Run(() =>
+            {
             var meta = new JsonObject
             {
                 ["timestamp"] = DateTime.Now,
@@ -1104,6 +1127,7 @@ namespace TiaMcpServer.Siemens
                 meta["error"] = FormatExceptionDetail(ex);
                 return new ResponseMessage { Message = $"Failed setting device item attribute '{attributeName}'", Meta = meta };
             }
+            });
         }
 
         // ----- Network topology / IP read-out (Openness as the source of truth) -----
@@ -1118,6 +1142,8 @@ namespace TiaMcpServer.Siemens
 
         private JsonArray BuildDeviceNodesJson(Device device)
         {
+            return _sta.Run(() =>
+            {
             var arr = new JsonArray();
             foreach (var root in device.DeviceItems)
             {
@@ -1136,6 +1162,7 @@ namespace TiaMcpServer.Siemens
                 }
             }
             return arr;
+            });
         }
 
         private static string FirstAddress(JsonArray nodes, bool ieOnly)
@@ -1153,6 +1180,8 @@ namespace TiaMcpServer.Siemens
         // Read a device's configured IP straight from Openness (PROFINET node Address), no S7 probe, no AML export.
         public JsonObject GetDeviceIpAddress(string devicePath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new JsonObject { ["found"] = false, ["message"] = "No project open." };
             var device = GetDevice(devicePath);
             if (device == null) return new JsonObject { ["found"] = false, ["device"] = devicePath, ["message"] = $"Device not found: '{devicePath}'." };
@@ -1169,11 +1198,14 @@ namespace TiaMcpServer.Siemens
                 ["nodeCount"] = nodes.Count,
                 ["nodes"] = nodes
             };
+            });
         }
 
         // One-shot project topology: every device with its network nodes (IP / subnet / type).
         public JsonObject GetProjectTopology()
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new JsonObject { ["message"] = "No project open." };
             var devices = new JsonArray();
             foreach (Device device in _project!.Devices)
@@ -1191,6 +1223,7 @@ namespace TiaMcpServer.Siemens
                 ["devices"] = devices,
                 ["note"] = "Devices placed inside device groups are not enumerated here (mirrors Project.Devices)."
             };
+            });
         }
 
         // ----- PUT/GET access (dependency check for S7 reads) -----
@@ -1227,6 +1260,8 @@ namespace TiaMcpServer.Siemens
         // Read whether a CPU permits remote PUT/GET access (precondition for ReadPlcLiveValuesS7 on DB areas).
         public JsonObject GetPutGetAccess(string devicePath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new JsonObject { ["found"] = false, ["message"] = "No project open." };
             var device = GetDevice(devicePath);
             if (device == null) return new JsonObject { ["found"] = false, ["device"] = devicePath, ["message"] = $"Device not found: '{devicePath}'." };
@@ -1254,12 +1289,15 @@ namespace TiaMcpServer.Siemens
                 ["enabled"] = AttrValueIsEnabled(val),
                 ["rawValue"] = val?.ToString() ?? string.Empty
             };
+            });
         }
 
         // Enable/disable remote PUT/GET access. NOTE: hardware-config change — a hardware DownloadToPlc is
         // required for it to take effect on the live CPU.
         public JsonObject SetPutGetAccess(string devicePath, bool enable)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new JsonObject { ["ok"] = false, ["message"] = "No project open." };
             var device = GetDevice(devicePath);
             if (device == null) return new JsonObject { ["ok"] = false, ["device"] = devicePath, ["message"] = $"Device not found: '{devicePath}'." };
@@ -1293,6 +1331,7 @@ namespace TiaMcpServer.Siemens
                 ["after"] = after?.ToString() ?? string.Empty,
                 ["note"] = "Hardware-config change — run DownloadToPlc (hardware) for it to take effect on the CPU."
             };
+            });
         }
 
         // Read-only inventory of every Openness attribute exposed on a device's DeviceItems (CPU, modules,
@@ -1303,6 +1342,8 @@ namespace TiaMcpServer.Siemens
         // flag on some S7-1200), so absence here is "not enumerated", not a hard guarantee of "no interface".
         public JsonObject DumpDeviceAttributes(string devicePath, string? nameFilter = null, int maxItems = 500)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull()) return new JsonObject { ["found"] = false, ["message"] = "No project open." };
             var device = GetDevice(devicePath);
             if (device == null) return new JsonObject { ["found"] = false, ["device"] = devicePath, ["message"] = $"Device not found: '{devicePath}'." };
@@ -1372,6 +1413,7 @@ namespace TiaMcpServer.Siemens
                 ["writableAttributes"] = writableAttrs,
                 ["items"] = itemsArr
             };
+            });
         }
 
         // EngineeringAttributeInfo exposes its access mode under SDK-version-dependent property names;
@@ -1396,6 +1438,8 @@ namespace TiaMcpServer.Siemens
 
         public string ProbeConnectDeviceNodesToSubnet(string plcRootPath, string hmiRootPath, string subnetName)
         {
+            return _sta.Run(() =>
+            {
             var sb = new StringBuilder();
             if (IsProjectNull()) return "Project is null";
 
@@ -1485,10 +1529,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return sb.ToString();
+            });
         }
 
         public ResponseMessage EnsureSubnet(string anchorDeviceItemPath, string subnetType, string subnetName)
         {
+            return _sta.Run(() =>
+            {
             var meta = new JsonObject
             {
                 ["timestamp"] = DateTime.Now,
@@ -1562,10 +1609,13 @@ namespace TiaMcpServer.Siemens
                 meta["readback"] = BuildSubnetReadbackJson(subnetName);
                 return new ResponseMessage { Message = "Failed ensuring subnet", Meta = meta };
             }
+            });
         }
 
         public ResponseMessage AttachDeviceNodeToSubnet(string deviceItemPath, int interfaceIndex, string subnetName, string anchorDeviceItemPath = "")
         {
+            return _sta.Run(() =>
+            {
             var meta = new JsonObject
             {
                 ["timestamp"] = DateTime.Now,
@@ -1638,10 +1688,13 @@ namespace TiaMcpServer.Siemens
                 meta["readback"] = BuildSubnetReadbackJson(subnetName);
                 return new ResponseMessage { Message = "Failed attaching device node to subnet", Meta = meta };
             }
+            });
         }
 
         public ResponseMessage SetCpuCommonSettings(string cpuPath, string settingsJson)
         {
+            return _sta.Run(() =>
+            {
             var meta = new JsonObject
             {
                 ["timestamp"] = DateTime.Now,
@@ -1751,10 +1804,13 @@ namespace TiaMcpServer.Siemens
                 meta["error"] = FormatExceptionDetail(ex);
                 return new ResponseMessage { Message = "Failed setting CPU common settings", Meta = meta };
             }
+            });
         }
 
         public string ProbeDeviceNetworkExposure(string deviceItemPath)
         {
+            return _sta.Run(() =>
+            {
             var sb = new StringBuilder();
             var root = GetDeviceItemByPath(deviceItemPath);
             if (root == null)
@@ -1802,140 +1858,146 @@ namespace TiaMcpServer.Siemens
             }
 
             return sb.ToString();
+            });
         }
 
         public string ProbeCreateHardwareHmiConnection(string plcRootPath, string hmiRootPath, string connectionName, bool createConnection = false, bool deepScan = false)
         {
-            var sb = new StringBuilder();
-            if (IsProjectNull()) return "Project is null";
-
-            var plcRoot = GetDeviceItemByPath(plcRootPath);
-            var hmiRoot = GetDeviceItemByPath(hmiRootPath);
-            sb.AppendLine("PLC root: " + plcRootPath + " -> " + (plcRoot?.Name ?? "<not found>"));
-            sb.AppendLine("HMI root: " + hmiRootPath + " -> " + (hmiRoot?.Name ?? "<not found>"));
-            if (plcRoot == null || hmiRoot == null) return sb.ToString();
-
-            var plcNode = FindNetworkNodes(plcRoot).FirstOrDefault(n => IsIndustrialEthernetNode(n.Node));
-            var hmiNode = FindNetworkNodes(hmiRoot).FirstOrDefault(n => IsIndustrialEthernetNode(n.Node));
-            sb.AppendLine("Selected PLC node: " + (plcNode.Node == null ? "<none>" : FormatNodeInfo(plcNode)));
-            sb.AppendLine("Selected HMI node: " + (hmiNode.Node == null ? "<none>" : FormatNodeInfo(hmiNode)));
-            sb.AppendLine("CreateConnection: " + createConnection);
-            sb.AppendLine("DeepScan: " + deepScan);
-            if (plcNode.Node == null || hmiNode.Node == null) return sb.ToString();
-
-#if TIA_V20 || TIA_V18
-            // V20/V18 does not expose Siemens.Engineering.HW.CommunicationConnections. The hardware-level
-            // HMI connection helper degrades to a no-op (caller still gets the diagnostic prefix).
-            var connectionCompositionType = Type.GetType("Siemens.Engineering.HW.CommunicationConnections.ConnectionComposition, Siemens.Engineering");
-            var hmiConnectionType = Type.GetType("Siemens.Engineering.HW.CommunicationConnections.HmiConnection, Siemens.Engineering");
-            if (connectionCompositionType == null || hmiConnectionType == null)
+            return _sta.Run(() =>
             {
-                sb.AppendLine(Capability.Describe(TiaFeature.HardwareHmiConnection) + " Skipping hardware HMI connection creation.");
-                return sb.ToString();
-            }
-#else
-            var connectionCompositionType = typeof(global::Siemens.Engineering.HW.CommunicationConnections.ConnectionComposition);
-            var hmiConnectionType = typeof(global::Siemens.Engineering.HW.CommunicationConnections.HmiConnection);
-#endif
-            var candidates = deepScan
-                ? BuildHardwareHmiConnectionCandidates(plcNode, hmiNode).ToList()
-                : BuildDirectHardwareHmiConnectionCandidates(plcNode, hmiNode).ToList();
-            sb.AppendLine("Candidate count: " + candidates.Count);
+                        var sb = new StringBuilder();
+                        if (IsProjectNull()) return "Project is null";
 
-            foreach (var c in candidates)
-            {
-                if (c.Target == null) continue;
-                sb.AppendLine("Candidate: " + c.Label + " targetType=" + c.Target.GetType().FullName);
-                object? composition = null;
-                try
-                {
-                    composition = TryGetService(c.Target, connectionCompositionType);
-                    sb.AppendLine("  ConnectionComposition service: " + (composition == null ? "<none>" : composition.GetType().FullName));
-                }
-                catch (Exception ex)
-                {
-                    sb.AppendLine("  ConnectionComposition service error: " + FormatExceptionDetail(ex));
-                }
+                        var plcRoot = GetDeviceItemByPath(plcRootPath);
+                        var hmiRoot = GetDeviceItemByPath(hmiRootPath);
+                        sb.AppendLine("PLC root: " + plcRootPath + " -> " + (plcRoot?.Name ?? "<not found>"));
+                        sb.AppendLine("HMI root: " + hmiRootPath + " -> " + (hmiRoot?.Name ?? "<not found>"));
+                        if (plcRoot == null || hmiRoot == null) return sb.ToString();
 
-                if (composition == null) continue;
+                        var plcNode = FindNetworkNodes(plcRoot).FirstOrDefault(n => IsIndustrialEthernetNode(n.Node));
+                        var hmiNode = FindNetworkNodes(hmiRoot).FirstOrDefault(n => IsIndustrialEthernetNode(n.Node));
+                        sb.AppendLine("Selected PLC node: " + (plcNode.Node == null ? "<none>" : FormatNodeInfo(plcNode)));
+                        sb.AppendLine("Selected HMI node: " + (hmiNode.Node == null ? "<none>" : FormatNodeInfo(hmiNode)));
+                        sb.AppendLine("CreateConnection: " + createConnection);
+                        sb.AppendLine("DeepScan: " + deepScan);
+                        if (plcNode.Node == null || hmiNode.Node == null) return sb.ToString();
 
-                try
-                {
-                    sb.AppendLine("  Before count=" + (TryGetPropertyValue(composition, "Count")?.ToString() ?? ""));
-                }
-                catch { }
+            #if TIA_V20 || TIA_V18
+                        // V20/V18 does not expose Siemens.Engineering.HW.CommunicationConnections. The hardware-level
+                        // HMI connection helper degrades to a no-op (caller still gets the diagnostic prefix).
+                        var connectionCompositionType = Type.GetType("Siemens.Engineering.HW.CommunicationConnections.ConnectionComposition, Siemens.Engineering");
+                        var hmiConnectionType = Type.GetType("Siemens.Engineering.HW.CommunicationConnections.HmiConnection, Siemens.Engineering");
+                        if (connectionCompositionType == null || hmiConnectionType == null)
+                        {
+                            sb.AppendLine(Capability.Describe(TiaFeature.HardwareHmiConnection) + " Skipping hardware HMI connection creation.");
+                            return sb.ToString();
+                        }
+            #else
+                        var connectionCompositionType = typeof(global::Siemens.Engineering.HW.CommunicationConnections.ConnectionComposition);
+                        var hmiConnectionType = typeof(global::Siemens.Engineering.HW.CommunicationConnections.HmiConnection);
+            #endif
+                        var candidates = deepScan
+                            ? BuildHardwareHmiConnectionCandidates(plcNode, hmiNode).ToList()
+                            : BuildDirectHardwareHmiConnectionCandidates(plcNode, hmiNode).ToList();
+                        sb.AppendLine("Candidate count: " + candidates.Count);
 
-                try
-                {
-                    var create = composition.GetType()
-                        .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                        .FirstOrDefault(m => m.Name == "Create" && m.IsGenericMethodDefinition && m.GetParameters().Length == 3);
-                    if (create == null)
-                    {
-                        sb.AppendLine("  Create<T>(Node,DeviceItem,Node) not found.");
-                        continue;
-                    }
+                        foreach (var c in candidates)
+                        {
+                            if (c.Target == null) continue;
+                            sb.AppendLine("Candidate: " + c.Label + " targetType=" + c.Target.GetType().FullName);
+                            object? composition = null;
+                            try
+                            {
+                                composition = TryGetService(c.Target, connectionCompositionType);
+                                sb.AppendLine("  ConnectionComposition service: " + (composition == null ? "<none>" : composition.GetType().FullName));
+                            }
+                            catch (Exception ex)
+                            {
+                                sb.AppendLine("  ConnectionComposition service error: " + FormatExceptionDetail(ex));
+                            }
 
-                    sb.AppendLine("  Create<T> signature: " + create);
-                    if (!createConnection)
-                    {
-                        sb.AppendLine("  Create skipped (scan-only mode).");
-                        continue;
-                    }
+                            if (composition == null) continue;
 
-                    var generic = create.MakeGenericMethod(hmiConnectionType);
-                    var created = generic.Invoke(composition, new object[] { c.LocalNode, c.PartnerTarget, c.PartnerNode });
-                    sb.AppendLine("  Create<HmiConnection>: " + (created == null ? "NULL" : "OK " + created.GetType().FullName));
-                    if (created != null)
-                    {
-                        TrySetProperty(created, "LocalConnectionName", connectionName);
-                        sb.AppendLine("  Created readback: " + SummarizeHmiObjectReadback(created, "LocalConnectionName", "LocalAddress", "PartnerAddress", "AccessPoint", "Online", "TimeSynchronizationMode"));
-                    }
+                            try
+                            {
+                                sb.AppendLine("  Before count=" + (TryGetPropertyValue(composition, "Count")?.ToString() ?? ""));
+                            }
+                            catch { }
 
-                    try
-                    {
-                        sb.AppendLine("  After count=" + (TryGetPropertyValue(composition, "Count")?.ToString() ?? ""));
-                    }
-                    catch { }
+                            try
+                            {
+                                var create = composition.GetType()
+                                    .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                                    .FirstOrDefault(m => m.Name == "Create" && m.IsGenericMethodDefinition && m.GetParameters().Length == 3);
+                                if (create == null)
+                                {
+                                    sb.AppendLine("  Create<T>(Node,DeviceItem,Node) not found.");
+                                    continue;
+                                }
 
-                    break;
-                }
-                catch (Exception ex)
-                {
-                    sb.AppendLine("  Create<HmiConnection> error: " + FormatExceptionDetail(ex));
-                }
-            }
+                                sb.AppendLine("  Create<T> signature: " + create);
+                                if (!createConnection)
+                                {
+                                    sb.AppendLine("  Create skipped (scan-only mode).");
+                                    continue;
+                                }
 
-            try
-            {
-                var sw = GetSoftwareContainer("HMI_RT_1")?.Software;
-                var connections = sw == null ? null : TryGetPropertyValue(sw, "Connections");
-                sb.AppendLine("Classic HMI Connections after HW probe:");
-                if (connections is IEnumerable en)
-                {
-                    var any = false;
-                    foreach (var c in en)
-                    {
-                        any = true;
-                        sb.AppendLine("  " + (TryGetName(c) ?? c?.ToString() ?? "<null>"));
-                    }
-                    if (!any) sb.AppendLine("  <empty>");
-                }
-                else
-                {
-                    sb.AppendLine("  <not found>");
-                }
-            }
-            catch (Exception ex)
-            {
-                sb.AppendLine("Classic HMI connection readback error: " + FormatExceptionDetail(ex));
-            }
+                                var generic = create.MakeGenericMethod(hmiConnectionType);
+                                var created = generic.Invoke(composition, new object[] { c.LocalNode, c.PartnerTarget, c.PartnerNode });
+                                sb.AppendLine("  Create<HmiConnection>: " + (created == null ? "NULL" : "OK " + created.GetType().FullName));
+                                if (created != null)
+                                {
+                                    TrySetProperty(created, "LocalConnectionName", connectionName);
+                                    sb.AppendLine("  Created readback: " + SummarizeHmiObjectReadback(created, "LocalConnectionName", "LocalAddress", "PartnerAddress", "AccessPoint", "Online", "TimeSynchronizationMode"));
+                                }
 
-            return sb.ToString();
+                                try
+                                {
+                                    sb.AppendLine("  After count=" + (TryGetPropertyValue(composition, "Count")?.ToString() ?? ""));
+                                }
+                                catch { }
+
+                                break;
+                            }
+                            catch (Exception ex)
+                            {
+                                sb.AppendLine("  Create<HmiConnection> error: " + FormatExceptionDetail(ex));
+                            }
+                        }
+
+                        try
+                        {
+                            var sw = GetSoftwareContainer("HMI_RT_1")?.Software;
+                            var connections = sw == null ? null : TryGetPropertyValue(sw, "Connections");
+                            sb.AppendLine("Classic HMI Connections after HW probe:");
+                            if (connections is IEnumerable en)
+                            {
+                                var any = false;
+                                foreach (var c in en)
+                                {
+                                    any = true;
+                                    sb.AppendLine("  " + (TryGetName(c) ?? c?.ToString() ?? "<null>"));
+                                }
+                                if (!any) sb.AppendLine("  <empty>");
+                            }
+                            else
+                            {
+                                sb.AppendLine("  <not found>");
+                            }
+                        }
+                        catch (Exception ex)
+                        {
+                            sb.AppendLine("Classic HMI connection readback error: " + FormatExceptionDetail(ex));
+                        }
+
+                        return sb.ToString();
+            });
         }
 
         public List<string> ProbeHardwareHmiConnectionOwnerCandidates(string plcRootPath, string hmiRootPath, bool deepScan = true)
         {
+            return _sta.Run(() =>
+            {
             var lines = new List<string>();
             if (IsProjectNull())
             {
@@ -1970,85 +2032,89 @@ namespace TiaMcpServer.Siemens
             }
 
             return lines;
+            });
         }
 
         public List<string> ProbeHardwareHmiConnectionWhitelistedServices(string plcRootPath, string hmiRootPath, bool deepScan = true)
         {
-            var lines = new List<string>();
-            if (IsProjectNull())
+            return _sta.Run(() =>
             {
-                lines.Add("Project is null");
-                return lines;
-            }
+                        var lines = new List<string>();
+                        if (IsProjectNull())
+                        {
+                            lines.Add("Project is null");
+                            return lines;
+                        }
 
-            var plcRoot = GetDeviceItemByPath(plcRootPath);
-            var hmiRoot = GetDeviceItemByPath(hmiRootPath);
-            lines.Add("PLC root: " + plcRootPath + " -> " + (plcRoot?.Name ?? "<not found>"));
-            lines.Add("HMI root: " + hmiRootPath + " -> " + (hmiRoot?.Name ?? "<not found>"));
-            if (plcRoot == null || hmiRoot == null) return lines;
+                        var plcRoot = GetDeviceItemByPath(plcRootPath);
+                        var hmiRoot = GetDeviceItemByPath(hmiRootPath);
+                        lines.Add("PLC root: " + plcRootPath + " -> " + (plcRoot?.Name ?? "<not found>"));
+                        lines.Add("HMI root: " + hmiRootPath + " -> " + (hmiRoot?.Name ?? "<not found>"));
+                        if (plcRoot == null || hmiRoot == null) return lines;
 
-            var plcNode = FindNetworkNodes(plcRoot).FirstOrDefault(n => IsIndustrialEthernetNode(n.Node));
-            var hmiNode = FindNetworkNodes(hmiRoot).FirstOrDefault(n => IsIndustrialEthernetNode(n.Node));
-            lines.Add("Selected PLC node: " + (plcNode.Node == null ? "<none>" : FormatNodeInfo(plcNode)));
-            lines.Add("Selected HMI node: " + (hmiNode.Node == null ? "<none>" : FormatNodeInfo(hmiNode)));
-            if (plcNode.Node == null || hmiNode.Node == null) return lines;
+                        var plcNode = FindNetworkNodes(plcRoot).FirstOrDefault(n => IsIndustrialEthernetNode(n.Node));
+                        var hmiNode = FindNetworkNodes(hmiRoot).FirstOrDefault(n => IsIndustrialEthernetNode(n.Node));
+                        lines.Add("Selected PLC node: " + (plcNode.Node == null ? "<none>" : FormatNodeInfo(plcNode)));
+                        lines.Add("Selected HMI node: " + (hmiNode.Node == null ? "<none>" : FormatNodeInfo(hmiNode)));
+                        if (plcNode.Node == null || hmiNode.Node == null) return lines;
 
-            var candidates = deepScan
-                ? BuildHardwareHmiConnectionCandidates(plcNode, hmiNode).ToList()
-                : BuildDirectHardwareHmiConnectionCandidates(plcNode, hmiNode).ToList();
+                        var candidates = deepScan
+                            ? BuildHardwareHmiConnectionCandidates(plcNode, hmiNode).ToList()
+                            : BuildDirectHardwareHmiConnectionCandidates(plcNode, hmiNode).ToList();
 
-#if TIA_V20 || TIA_V18
-            var commConnT = Type.GetType("Siemens.Engineering.HW.CommunicationConnections.ConnectionComposition, Siemens.Engineering");
-            var serviceTypes = commConnT != null
-                ? new[] { commConnT, typeof(NetworkInterface), typeof(NetworkPort) }
-                : new[] { typeof(NetworkInterface), typeof(NetworkPort) };
-#else
-            var serviceTypes = new[]
-            {
-                typeof(global::Siemens.Engineering.HW.CommunicationConnections.ConnectionComposition),
-                typeof(NetworkInterface),
-                typeof(NetworkPort)
-            };
-#endif
+            #if TIA_V20 || TIA_V18
+                        var commConnT = Type.GetType("Siemens.Engineering.HW.CommunicationConnections.ConnectionComposition, Siemens.Engineering");
+                        var serviceTypes = commConnT != null
+                            ? new[] { commConnT, typeof(NetworkInterface), typeof(NetworkPort) }
+                            : new[] { typeof(NetworkInterface), typeof(NetworkPort) };
+            #else
+                        var serviceTypes = new[]
+                        {
+                            typeof(global::Siemens.Engineering.HW.CommunicationConnections.ConnectionComposition),
+                            typeof(NetworkInterface),
+                            typeof(NetworkPort)
+                        };
+            #endif
 
-            lines.Add("DeepScan: " + deepScan);
-            lines.Add("Candidate count: " + candidates.Count);
-            lines.Add("Service whitelist: " + string.Join(", ", serviceTypes.Select(t => t.FullName)));
+                        lines.Add("DeepScan: " + deepScan);
+                        lines.Add("Candidate count: " + candidates.Count);
+                        lines.Add("Service whitelist: " + string.Join(", ", serviceTypes.Select(t => t.FullName)));
 
-            foreach (var c in candidates)
-            {
-                if (c.Target == null) continue;
-                if (!IsSafeHardwareHmiServiceProbeTarget(c.Target))
-                {
-                    lines.Add("Candidate: " + c.Label + " | type=" + c.Target.GetType().FullName + " | SKIP unsafe/high-level target");
-                    continue;
-                }
+                        foreach (var c in candidates)
+                        {
+                            if (c.Target == null) continue;
+                            if (!IsSafeHardwareHmiServiceProbeTarget(c.Target))
+                            {
+                                lines.Add("Candidate: " + c.Label + " | type=" + c.Target.GetType().FullName + " | SKIP unsafe/high-level target");
+                                continue;
+                            }
 
-                lines.Add("Candidate: " + c.Label + " | type=" + (c.Target.GetType().FullName ?? c.Target.GetType().Name) + " | name=" + (TryGetName(c.Target) ?? "<unnamed>"));
-                foreach (var serviceType in serviceTypes)
-                {
-                    object? service = null;
-                    try
-                    {
-                        service = TryGetService(c.Target, serviceType);
-                    }
-                    catch (Exception ex)
-                    {
-                        lines.Add("  " + serviceType.Name + ": ERROR " + FormatExceptionDetail(ex));
-                        continue;
-                    }
+                            lines.Add("Candidate: " + c.Label + " | type=" + (c.Target.GetType().FullName ?? c.Target.GetType().Name) + " | name=" + (TryGetName(c.Target) ?? "<unnamed>"));
+                            foreach (var serviceType in serviceTypes)
+                            {
+                                object? service = null;
+                                try
+                                {
+                                    service = TryGetService(c.Target, serviceType);
+                                }
+                                catch (Exception ex)
+                                {
+                                    lines.Add("  " + serviceType.Name + ": ERROR " + FormatExceptionDetail(ex));
+                                    continue;
+                                }
 
-                    if (service == null)
-                    {
-                        lines.Add("  " + serviceType.Name + ": <none>");
-                        continue;
-                    }
+                                if (service == null)
+                                {
+                                    lines.Add("  " + serviceType.Name + ": <none>");
+                                    continue;
+                                }
 
-                    lines.Add("  " + serviceType.Name + ": " + service.GetType().FullName + " | " + SummarizeWhitelistedService(service));
-                }
-            }
+                                lines.Add("  " + serviceType.Name + ": " + service.GetType().FullName + " | " + SummarizeWhitelistedService(service));
+                            }
+                        }
 
-            return lines;
+                        return lines;
+            });
         }
 
         private IEnumerable<(string Label, object? Target, object LocalNode, DeviceItem PartnerTarget, object PartnerNode)> BuildHardwareHmiConnectionCandidates(NetworkNodeInfo plcNode, NetworkNodeInfo hmiNode)
@@ -2430,14 +2496,19 @@ namespace TiaMcpServer.Siemens
 
         private JsonArray BuildSubnetReadbackJson(string subnetName)
         {
+            return _sta.Run(() =>
+            {
             var arr = new JsonArray();
             foreach (var line in BuildSubnetReadbackLines(subnetName))
                 arr.Add(line);
             return arr;
+            });
         }
 
         private List<string> BuildSubnetReadbackLines(string subnetName)
         {
+            return _sta.Run(() =>
+            {
             var lines = new List<string>();
             if (_project == null) return lines;
 
@@ -2461,6 +2532,7 @@ namespace TiaMcpServer.Siemens
                 AddSubnetReadbackLinesFromGroup(group, subnetName, lines);
 
             return lines;
+            });
         }
 
         private static void AddSubnetReadbackLinesFromGroup(DeviceUserGroup group, string subnetName, List<string> lines)
@@ -2485,12 +2557,17 @@ namespace TiaMcpServer.Siemens
 
         private bool SubnetReadbackContains(string subnetName)
         {
+            return _sta.Run(() =>
+            {
             return BuildSubnetReadbackLines(subnetName)
                 .Any(x => x.IndexOf("connectedSubnet=" + subnetName, StringComparison.OrdinalIgnoreCase) >= 0);
+            });
         }
 
         private JsonArray BuildDeviceItemNetworkReadbackJson(string deviceItemPath)
         {
+            return _sta.Run(() =>
+            {
             var arr = new JsonArray();
             var attrs = GetDeviceItemNetworkInfo(deviceItemPath) ?? new List<ModelContextProtocol.NetworkAttribute>();
             foreach (var attr in attrs)
@@ -2504,6 +2581,7 @@ namespace TiaMcpServer.Siemens
                 });
             }
             return arr;
+            });
         }
 
         private static IEnumerable<string> ProbeInterestingServices(object target)
@@ -2585,6 +2663,8 @@ namespace TiaMcpServer.Siemens
 
         public ResponseMessage ValidateAutomationContext(string expectedPlcSoftwarePath = "PLC_1", string expectedHmiSoftwarePath = "HMI_RT_1")
         {
+            return _sta.Run(() =>
+            {
             var meta = new JsonObject
             {
                 ["timestamp"] = DateTime.Now,
@@ -2691,6 +2771,7 @@ namespace TiaMcpServer.Siemens
                 }
                 catch { }
             }
+            });
         }
 
         private static void BuildDeviceItemTree(StringBuilder sb, DeviceItem node, List<bool> ancestorStates, int depth, int maxDepth)

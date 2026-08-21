@@ -16,6 +16,8 @@ namespace TiaMcpServer.Siemens
     {
         public ResponseOnlineState GetOnlineState(string softwarePath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 return new ResponseOnlineState { State = "Offline", IsOnline = false, IsReachable = false, Message = "No project open." };
 
@@ -47,10 +49,13 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "GetOnlineState failed for {SoftwarePath}", softwarePath);
                 return new ResponseOnlineState { State = "Unknown", IsOnline = false, IsReachable = false, Message = $"Error: {ex.Message}" };
             }
+            });
         }
 
         public ResponseOnlineState GoOnline(string softwarePath, string? ipAddress = null, string? password = null)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 return new ResponseOnlineState { State = "Offline", IsOnline = false, IsReachable = false, Message = "No project open." };
 
@@ -113,10 +118,13 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "GoOnline failed for {SoftwarePath}", softwarePath);
                 return new ResponseOnlineState { State = "NotReachable", IsOnline = false, IsReachable = false, Message = $"GoOnline failed: {ex.Message}" };
             }
+            });
         }
 
         public ResponseMessage GoOffline(string softwarePath)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 return new ResponseMessage { Message = "No project open." };
 
@@ -135,6 +143,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "GoOffline failed for {SoftwarePath}", softwarePath);
                 return new ResponseMessage { Message = $"GoOffline error: {ex.Message}" };
             }
+            });
         }
 
         // Take EVERY PLC in the project offline, not just one. A UI-initiated online session,
@@ -144,6 +153,8 @@ namespace TiaMcpServer.Siemens
         // toggle online/offline in the TIA UI. Returns per-PLC before/after state.
         public JsonObject GoOfflineAll()
         {
+            return _sta.Run(() =>
+            {
             var plcs = new JsonArray();
             if (IsProjectNull())
                 return new JsonObject { ["message"] = "No project open.", ["allOffline"] = true, ["plcs"] = plcs };
@@ -177,10 +188,13 @@ namespace TiaMcpServer.Siemens
                 ["allOffline"] = allOffline,
                 ["plcs"] = plcs
             };
+            });
         }
 
         public ResponseCompare CompareSoftwareToOnline(string softwarePath, int maxDepth = 4, int maxEntries = 200)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 return new ResponseCompare { Message = "No project open.", IsOnline = false };
 
@@ -230,6 +244,7 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "CompareSoftwareToOnline failed for {SoftwarePath}", softwarePath);
                 return new ResponseCompare { Message = $"Compare failed: {ex.Message}" };
             }
+            });
         }
 
         private static bool WalkCompareTree(object? element, string path, int depth, int maxDepth, int maxEntries,

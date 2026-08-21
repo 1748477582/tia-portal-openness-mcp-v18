@@ -45,6 +45,8 @@ namespace TiaMcpServer.Siemens
 
         private bool IsPortalNull()
         {
+            return _sta.Run(() =>
+            {
             if (_portal == null)
             {
                 _logger?.LogWarning("No TIA portal available.");
@@ -53,10 +55,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return false;
+            });
         }
 
         private bool IsProjectNull()
         {
+            return _sta.Run(() =>
+            {
             if (_project == null)
             {
                 // Self-heal for less-capable AI drivers that call a tool before Connect/Open.
@@ -92,10 +97,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return false;
+            });
         }
 
         private bool IsSessionNull()
         {
+            return _sta.Run(() =>
+            {
             if (_session == null)
             {
                 _logger?.LogWarning("No TIA session available.");
@@ -104,44 +112,50 @@ namespace TiaMcpServer.Siemens
             }
 
             return false;
+            });
         }
 
         #region  GetTree ...
 
         private string GetTreePrefix(List<bool> ancestorStates, bool isLast)
         {
+            return _sta.Run(() =>
+            {
             var prefix = new StringBuilder();
-            
+
             // Build prefix based on ancestor states
             for (int i = 0; i < ancestorStates.Count; i++)
             {
                 prefix.Append(ancestorStates[i] ? "    " : "│   ");
             }
-            
+
             // Add current level connector
             prefix.Append(isLast ? "└── " : "├── ");
             return prefix.ToString();
+            });
         }
 
         private void GetProjectTreeDevices(StringBuilder sb, DeviceComposition devices, List<bool> ancestorStates)
         {
+            _sta.Run(() =>
+            {
             if (devices.Count == 0) return;
-            
+
             // Check if this is the last main section
             var hasOtherSections = (_project?.DeviceGroups != null && _project.DeviceGroups.Count > 0) ||
                                   (_project?.UngroupedDevicesGroup != null);
             var isLastMainSection = !hasOtherSections;
-            
+
             sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastMainSection)}Devices [Collection]");
 
             var deviceList = devices.ToList();
             var newAncestorStates = new List<bool>(ancestorStates) { isLastMainSection };
-            
+
             for (int i = 0; i < deviceList.Count; i++)
             {
                 var device = deviceList[i];
                 var isLastDevice = i == deviceList.Count - 1;
-                
+
                 sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastDevice)}{device.Name} [Device: {device.TypeIdentifier}]");
 
                 if (device.DeviceItems != null && device.DeviceItems.Count > 0)
@@ -149,132 +163,150 @@ namespace TiaMcpServer.Siemens
                     GetProjectTreeDeviceItemsRecursive(sb, device.DeviceItems, new List<bool>(newAncestorStates) { isLastDevice });
                 }
             }
+            });
         }
 
         private void GetProjectTreeGroups(StringBuilder sb, DeviceUserGroupComposition groups, List<bool> ancestorStates)
         {
+            _sta.Run(() =>
+            {
             if (groups.Count == 0) return;
-            
+
             var isLastMainSection = _project?.UngroupedDevicesGroup == null;
-            
+
             sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastMainSection)}Groups [Collection]");
 
             var groupList = groups.ToList();
             var newAncestorStates = new List<bool>(ancestorStates) { isLastMainSection };
-            
+
             for (int i = 0; i < groupList.Count; i++)
             {
                 var group = groupList[i];
                 var isLastGroup = i == groupList.Count - 1;
-                
+
                 sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{group.Name} [Group]");
 
                 var groupAncestorStates = new List<bool>(newAncestorStates) { isLastGroup };
-                
+
                 if (group.Devices != null && group.Devices.Count > 0)
                 {
                     GetProjectTreeGroupDevices(sb, group.Devices, groupAncestorStates, group.Groups != null && group.Groups.Count > 0);
                 }
-                
+
                 if (group.Groups != null && group.Groups.Count > 0)
                 {
                     GetProjectTreeSubGroups(sb, group.Groups, groupAncestorStates);
                 }
             }
+            });
         }
         
         private void GetProjectTreeGroupDevices(StringBuilder sb, DeviceComposition devices, List<bool> ancestorStates, bool hasSubGroups)
         {
+            _sta.Run(() =>
+            {
             var deviceList = devices.ToList();
-            
+
             for (int i = 0; i < deviceList.Count; i++)
             {
                 var device = deviceList[i];
                 var isLastDevice = i == deviceList.Count - 1 && !hasSubGroups;
-                
+
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastDevice)}{device.Name} [Device]");
-                
+
                 if (device.DeviceItems != null && device.DeviceItems.Count > 0)
                 {
                     GetProjectTreeDeviceItemsRecursive(sb, device.DeviceItems, new List<bool>(ancestorStates) { isLastDevice });
                 }
             }
+            });
         }
         
         private void GetProjectTreeSubGroups(StringBuilder sb, DeviceUserGroupComposition groups, List<bool> ancestorStates)
         {
+            _sta.Run(() =>
+            {
             var groupList = groups.ToList();
-            
+
             for (int i = 0; i < groupList.Count; i++)
             {
                 var group = groupList[i];
                 var isLastGroup = i == groupList.Count - 1;
-                
+
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{group.Name} [Subgroup]");
-                
+
                 var groupAncestorStates = new List<bool>(ancestorStates) { isLastGroup };
-                
+
                 if (group.Devices != null && group.Devices.Count > 0)
                 {
                     GetProjectTreeGroupDevices(sb, group.Devices, groupAncestorStates, group.Groups != null && group.Groups.Count > 0);
                 }
-                
+
                 if (group.Groups != null && group.Groups.Count > 0)
                 {
                     GetProjectTreeSubGroups(sb, group.Groups, groupAncestorStates);
                 }
             }
+            });
         }
 
         private void GetProjectTreeDeviceItemsRecursive(StringBuilder sb, DeviceItemComposition deviceItems, List<bool> ancestorStates)
         {
+            _sta.Run(() =>
+            {
             var deviceItemsList = deviceItems.ToList();
-            
+
             for (int i = 0; i < deviceItemsList.Count; i++)
             {
                 var deviceItem = deviceItemsList[i];
                 var isLastDeviceItem = i == deviceItemsList.Count - 1;
-                
+
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastDeviceItem)}{deviceItem.Name} [DeviceItem]");
-                
+
                 var itemAncestorStates = new List<bool>(ancestorStates) { isLastDeviceItem };
-                
+
                 // Get software first
                 GetProjectTreeDeviceItemSoftware(sb, deviceItem, itemAncestorStates);
-                
+
                 // Then get items
                 if (deviceItem.Items != null && deviceItem.Items.Count > 0)
                 {
                     GetProjectTreeItems(sb, deviceItem.Items, itemAncestorStates, deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
                 }
-                
+
                 // Finally get sub-device items
                 if (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0)
                 {
                     GetProjectTreeDeviceItemsRecursive(sb, deviceItem.DeviceItems, itemAncestorStates);
                 }
             }
+            });
         }
         
         private void GetProjectTreeItems(StringBuilder sb, DeviceItemAssociation items, List<bool> ancestorStates, bool hasSubDeviceItems)
         {
+            _sta.Run(() =>
+            {
             var itemsList = items.ToList();
-            
+
             for (int i = 0; i < itemsList.Count; i++)
             {
                 var subItem = itemsList[i];
                 var isLastItem = i == itemsList.Count - 1 && !hasSubDeviceItems;
-                
+
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastItem)}{subItem.Name} [Hardware Component]");
             }
+            });
         }
 
 
         private void GetProjectTreeDeviceItemSoftware(StringBuilder sb, DeviceItem deviceItem, List<bool> ancestorStates)
         {
+            _sta.Run(() =>
+            {
             var softwareContainer = deviceItem.GetService<SoftwareContainer>();
             var hasSoftware = false;
-            
+
             //PLC software
             if (softwareContainer?.Software is PlcSoftware plcSoftware)
             {
@@ -295,39 +327,46 @@ namespace TiaMcpServer.Siemens
             //Unified HMI software: dlls will only exist on TIA Portal V19 and newer.
             if (Engineering.TiaMajorVersion >= 19)
                 TryGetUnifiedSoftware(sb, deviceItem, ancestorStates, softwareContainer, hasSoftware);
+            });
         }
 
         private bool TryGetUnifiedSoftware(StringBuilder sb, DeviceItem deviceItem, List<bool> ancestorStates, SoftwareContainer? softwareContainer, bool hasSoftware)
         {
-#if !TIA_V18
-            if (softwareContainer?.Software is HmiSoftware hmiSoftware)
+            return _sta.Run(() =>
             {
-                var hasOtherItems = (deviceItem.Items != null && deviceItem.Items.Count > 0) ||
-                                    (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
-                sb.AppendLine($"{GetTreePrefix(ancestorStates, !hasOtherItems && !hasSoftware)}HmiSoftware: {hmiSoftware.Name} [HMI Program]");
-                hasSoftware = true;
-            }
-#endif
-            return hasSoftware;
+            #if !TIA_V18
+                        if (softwareContainer?.Software is HmiSoftware hmiSoftware)
+                        {
+                            var hasOtherItems = (deviceItem.Items != null && deviceItem.Items.Count > 0) ||
+                                                (deviceItem.DeviceItems != null && deviceItem.DeviceItems.Count > 0);
+                            sb.AppendLine($"{GetTreePrefix(ancestorStates, !hasOtherItems && !hasSoftware)}HmiSoftware: {hmiSoftware.Name} [HMI Program]");
+                            hasSoftware = true;
+                        }
+            #endif
+                        return hasSoftware;
+            });
         }
 
         private void GetProjectTreeUngroupedDeviceGroup(StringBuilder sb, DeviceSystemGroup ungroupedDevicesGroup, List<bool> ancestorStates)
         {
+            _sta.Run(() =>
+            {
             sb.AppendLine($"{GetTreePrefix(ancestorStates, true)}UngroupedDevicesGroup: {ungroupedDevicesGroup.Name} [System Group]");
 
             if (ungroupedDevicesGroup.Devices != null && ungroupedDevicesGroup.Devices.Count > 0)
             {
                 var deviceList = ungroupedDevicesGroup.Devices.ToList();
                 var newAncestorStates = new List<bool>(ancestorStates) { true };
-                
+
                 for (int i = 0; i < deviceList.Count; i++)
                 {
                     var device = deviceList[i];
                     var isLastDevice = i == deviceList.Count - 1;
-                    
+
                     sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastDevice)}{device.Name} [{device.TypeIdentifier}]");
                 }
             }
+            });
         }
 
         #endregion
@@ -336,6 +375,8 @@ namespace TiaMcpServer.Siemens
 
         public string GetSoftwareTree(string softwarePath)
         {
+            return _sta.Run(() =>
+            {
             _logger?.LogInformation("Getting software tree for path: {SoftwarePath}", softwarePath);
 
             if (IsProjectNull())
@@ -350,13 +391,13 @@ namespace TiaMcpServer.Siemens
                 {
                     StringBuilder sb = new();
                     sb.AppendLine($"{plcSoftware.Name} [PLC Software]");
-                    
+
                     var ancestorStates = new List<bool>();
                     var sections = new List<Action>();
-                    
+
                     var hasBlocks = plcSoftware.BlockGroup != null;
                     var hasTypes = plcSoftware.TypeGroup != null;
-                    
+
                     // Add blocks section
                     if (hasBlocks)
                     {
@@ -366,7 +407,7 @@ namespace TiaMcpServer.Siemens
                             sections.Add(() => GetSoftwareTreeBlockGroup(sb, blockGroup, ancestorStates, "Program blocks", !hasTypes));
                         }
                     }
-                    
+
                     // Add types section
                     if (hasTypes)
                     {
@@ -376,8 +417,8 @@ namespace TiaMcpServer.Siemens
                             sections.Add(() => GetSoftwareTreeTypeGroup(sb, typeGroup, ancestorStates, "PLC data types", true));
                         }
                     }
-                    
-                    
+
+
                     // Execute sections
                     for (int i = 0; i < sections.Count; i++)
                     {
@@ -396,17 +437,20 @@ namespace TiaMcpServer.Siemens
                 _logger?.LogError(ex, "Error getting software tree for {SoftwarePath}", softwarePath);
                 return $"Error retrieving software tree: {ex.Message}";
             }
+            });
         }
         
         private void GetSoftwareTreeBlockGroup(StringBuilder sb, PlcBlockGroup blockGroup, List<bool> ancestorStates, string groupLabel, bool isLastSection)
         {
+            _sta.Run(() =>
+            {
             sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel}"); // [Collection]
             var newAncestorStates = new List<bool>(ancestorStates) { isLastSection };
-            
+
             // Get blocks in this group
             var blocks = blockGroup.Blocks.ToList();
             var subGroups = blockGroup.Groups.ToList();
-            
+
             // First, add all blocks
             for (int i = 0; i < blocks.Count; i++)
             {
@@ -420,26 +464,29 @@ namespace TiaMcpServer.Siemens
 
                 sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastBlock)}{block.Name} [{blockTypeName}{block.Number}, {block.ProgrammingLanguage}]");
             }
-            
+
             // Then, add all subgroups recursively
             for (int i = 0; i < subGroups.Count; i++)
             {
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
-                
+
                 sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name}"); // [Block Group]
 
                 var groupAncestorStates = new List<bool>(newAncestorStates) { isLastGroup };
                 GetSoftwareTreeBlockGroupRecursive(sb, subGroup, groupAncestorStates);
             }
+            });
         }
         
         private void GetSoftwareTreeBlockGroupRecursive(StringBuilder sb, PlcBlockGroup blockGroup, List<bool> ancestorStates)
         {
+            _sta.Run(() =>
+            {
             // Get blocks in this group
             var blocks = blockGroup.Blocks.ToList();
             var subGroups = blockGroup.Groups.ToList();
-            
+
             // First, add all blocks
             for (int i = 0; i < blocks.Count; i++)
             {
@@ -453,30 +500,32 @@ namespace TiaMcpServer.Siemens
 
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastBlock)}{block.Name} [{blockTypeName}{block.Number}, {block.ProgrammingLanguage}]");
             }
-            
+
             // Then, add all subgroups recursively
             for (int i = 0; i < subGroups.Count; i++)
             {
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
-                
+
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name}"); // [Block Group]
 
                 var groupAncestorStates = new List<bool>(ancestorStates) { isLastGroup };
                 GetSoftwareTreeBlockGroupRecursive(sb, subGroup, groupAncestorStates);
             }
+            });
         }
         
         private void GetSoftwareTreeTypeGroup(StringBuilder sb, PlcTypeGroup typeGroup, List<bool> ancestorStates, string groupLabel, bool isLastSection)
         {
-            
+            _sta.Run(() =>
+            {
             sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastSection)}{groupLabel}"); // [Collection]
             var newAncestorStates = new List<bool>(ancestorStates) { isLastSection };
-            
+
             // Get types in this group
             var types = typeGroup.Types.ToList();
             var subGroups = typeGroup.Groups.ToList();
-            
+
             // First, add all types
             for (int i = 0; i < types.Count; i++)
             {
@@ -489,26 +538,29 @@ namespace TiaMcpServer.Siemens
 
                 sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastType)}{type.Name} [{typeTypeName}]");
             }
-            
+
             // Then, add all subgroups recursively
             for (int i = 0; i < subGroups.Count; i++)
             {
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
-                
+
                 sb.AppendLine($"{GetTreePrefix(newAncestorStates, isLastGroup)}{subGroup.Name}"); // [Type Group]
 
                 var groupAncestorStates = new List<bool>(newAncestorStates) { isLastGroup };
                 GetSoftwareTreeTypeGroupRecursive(sb, subGroup, groupAncestorStates);
             }
+            });
         }
         
         private void GetSoftwareTreeTypeGroupRecursive(StringBuilder sb, PlcTypeGroup typeGroup, List<bool> ancestorStates)
         {
+            _sta.Run(() =>
+            {
             // Get types in this group
             var types = typeGroup.Types.ToList();
             var subGroups = typeGroup.Groups.ToList();
-            
+
             // First, add all types
             for (int i = 0; i < types.Count; i++)
             {
@@ -521,18 +573,19 @@ namespace TiaMcpServer.Siemens
 
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastType)}{type.Name} [{typeTypeName}]");
             }
-            
+
             // Then, add all subgroups recursively
             for (int i = 0; i < subGroups.Count; i++)
             {
                 var subGroup = subGroups[i];
                 var isLastGroup = i == subGroups.Count - 1;
-                
+
                 sb.AppendLine($"{GetTreePrefix(ancestorStates, isLastGroup)}{subGroup.Name}"); // [Type Group]
 
                 var groupAncestorStates = new List<bool>(ancestorStates) { isLastGroup };
                 GetSoftwareTreeTypeGroupRecursive(sb, subGroup, groupAncestorStates);
             }
+            });
         }
 
         #endregion
@@ -1110,105 +1163,109 @@ namespace TiaMcpServer.Siemens
         // falls back to SimaticML XML for mixed-language/STL blocks. Returns a summary.
         public string MoveBlockToGroup(string softwarePath, string blockName, string targetGroupPath, bool autoCreateGroup = true)
         {
-            if (IsProjectNull())
+            return _sta.Run(() =>
             {
-                throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
-            }
+                        ValidateBlockName(blockName, "MoveBlockToGroup");
+                        if (IsProjectNull())
+                        {
+                            throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
+                        }
 
-            var softwareContainer = GetSoftwareContainer(softwarePath);
-            if (softwareContainer?.Software is not PlcSoftware plcSoftware || plcSoftware.BlockGroup == null)
-            {
-                throw new PortalException(PortalErrorCode.NotFound, $"PlcSoftware not found at '{softwarePath}'");
-            }
+                        var softwareContainer = GetSoftwareContainer(softwarePath);
+                        if (softwareContainer?.Software is not PlcSoftware plcSoftware || plcSoftware.BlockGroup == null)
+                        {
+                            throw new PortalException(PortalErrorCode.NotFound, $"PlcSoftware not found at '{softwarePath}'");
+                        }
 
-            // 1) find the block anywhere by exact name
-            var all = new List<PlcBlock>();
-            GetBlocksRecursive(plcSoftware.BlockGroup, all);
-            var block = all.FirstOrDefault(b => b.Name.Equals(blockName, StringComparison.OrdinalIgnoreCase));
-            if (block == null)
-            {
-                throw new PortalException(PortalErrorCode.NotFound, $"Block '{blockName}' not found in '{softwarePath}'");
-            }
+                        // 1) find the block anywhere by exact name
+                        var all = new List<PlcBlock>();
+                        GetBlocksRecursive(plcSoftware.BlockGroup, all);
+                        var block = all.FirstOrDefault(b => b.Name.Equals(blockName, StringComparison.OrdinalIgnoreCase));
+                        if (block == null)
+                        {
+                            throw new PortalException(PortalErrorCode.NotFound, $"Block '{blockName}' not found in '{softwarePath}'");
+                        }
 
-            // 2) ensure the target group exists
-            var targetGroup = autoCreateGroup
-                ? EnsurePlcBlockGroup(softwarePath, targetGroupPath, out _)
-                : GetPlcBlockGroupByPath(softwarePath, targetGroupPath);
-            if (targetGroup == null)
-            {
-                throw new PortalException(PortalErrorCode.NotFound,
-                    $"Target block group '{targetGroupPath}' not found (set autoCreateGroup=true to create it)");
-            }
+                        // 2) ensure the target group exists
+                        var targetGroup = autoCreateGroup
+                            ? EnsurePlcBlockGroup(softwarePath, targetGroupPath, out _)
+                            : GetPlcBlockGroupByPath(softwarePath, targetGroupPath);
+                        if (targetGroup == null)
+                        {
+                            throw new PortalException(PortalErrorCode.NotFound,
+                                $"Target block group '{targetGroupPath}' not found (set autoCreateGroup=true to create it)");
+                        }
 
-            // already in the target group?
-            if (ReferenceEquals(block.Parent, targetGroup))
-            {
-                return $"Block '{blockName}' already in group '{targetGroupPath}' (no move needed)";
-            }
+                        // already in the target group?
+                        if (ReferenceEquals(block.Parent, targetGroup))
+                        {
+                            return $"Block '{blockName}' already in group '{targetGroupPath}' (no move needed)";
+                        }
 
-            // 3) export -> delete -> import into target group (no native reparent)
-            var tempDir = Path.Combine(Path.GetTempPath(), "tia_mcp_move", Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(tempDir);
-            string method;
-            try
-            {
-                bool usedDocs;
-                try
-                {
-#if !TIA_V18
-                    var exp = block.ExportAsDocuments(new DirectoryInfo(tempDir), blockName);
-                    usedDocs = exp != null && exp.State == DocumentResultState.Success;
-#else
-                    usedDocs = false;
-#endif
-                }
-                catch (EngineeringNotSupportedException)
-                {
-                    usedDocs = false; // mixed-language / STL -> fall back to XML
-                }
+                        // 3) export -> delete -> import into target group (no native reparent)
+                        var tempDir = Path.Combine(Path.GetTempPath(), "tia_mcp_move", Guid.NewGuid().ToString("N"));
+                        Directory.CreateDirectory(tempDir);
+                        string method;
+                        try
+                        {
+                            bool usedDocs;
+                            try
+                            {
+            #if !TIA_V18
+                                var exp = block.ExportAsDocuments(new DirectoryInfo(tempDir), blockName);
+                                usedDocs = exp != null && exp.State == DocumentResultState.Success;
+            #else
+                                usedDocs = false;
+            #endif
+                            }
+                            catch (EngineeringNotSupportedException)
+                            {
+                                usedDocs = false; // mixed-language / STL -> fall back to XML
+                            }
 
-                if (usedDocs)
-                {
-                    block.Delete();
-#if !TIA_V18
-                    var res = targetGroup.Blocks.ImportFromDocuments(new DirectoryInfo(tempDir), blockName, ImportDocumentOptions.Override);
-                    if (res == null || res.State != DocumentResultState.Success)
-                    {
-                        throw new PortalException(PortalErrorCode.ImportFailed,
-                            $"Re-import of '{blockName}' into '{targetGroupPath}' failed (documents)");
-                    }
-#endif
-                    method = "documents(.s7dcl)";
-                }
-                else
-                {
-                    var xml = Path.Combine(tempDir, blockName + ".xml");
-                    block.Export(new FileInfo(xml), ExportOptions.None);
-                    block.Delete();
-                    var imp = targetGroup.Blocks.Import(new FileInfo(xml), ImportOptions.Override);
-                    if (imp == null || imp.Count == 0)
-                    {
-                        throw new PortalException(PortalErrorCode.ImportFailed,
-                            $"Re-import of '{blockName}' into '{targetGroupPath}' failed (xml)");
-                    }
-                    method = "xml(SimaticML)";
-                }
-            }
-            finally
-            {
-                try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { /* best-effort cleanup */ }
-            }
+                            if (usedDocs)
+                            {
+                                block.Delete();
+            #if !TIA_V18
+                                var res = targetGroup.Blocks.ImportFromDocuments(new DirectoryInfo(tempDir), blockName, ImportDocumentOptions.Override);
+                                if (res == null || res.State != DocumentResultState.Success)
+                                {
+                                    throw new PortalException(PortalErrorCode.ImportFailed,
+                                        $"Re-import of '{blockName}' into '{targetGroupPath}' failed (documents)");
+                                }
+            #endif
+                                method = "documents(.s7dcl)";
+                            }
+                            else
+                            {
+                                var xml = Path.Combine(tempDir, blockName + ".xml");
+                                block.Export(new FileInfo(xml), ExportOptions.None);
+                                block.Delete();
+                                var imp = targetGroup.Blocks.Import(new FileInfo(xml), ImportOptions.Override);
+                                if (imp == null || imp.Count == 0)
+                                {
+                                    throw new PortalException(PortalErrorCode.ImportFailed,
+                                        $"Re-import of '{blockName}' into '{targetGroupPath}' failed (xml)");
+                                }
+                                method = "xml(SimaticML)";
+                            }
+                        }
+                        finally
+                        {
+                            try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { /* best-effort cleanup */ }
+                        }
 
-            // 4) verify the block is now under the target group
-            var verifyGroup = GetPlcBlockGroupByPath(softwarePath, targetGroupPath);
-            var present = verifyGroup?.Blocks.FirstOrDefault(b => b.Name.Equals(blockName, StringComparison.OrdinalIgnoreCase)) != null;
-            if (!present)
-            {
-                throw new PortalException(PortalErrorCode.ImportFailed,
-                    $"Move of '{blockName}' to '{targetGroupPath}' could not be verified");
-            }
+                        // 4) verify the block is now under the target group
+                        var verifyGroup = GetPlcBlockGroupByPath(softwarePath, targetGroupPath);
+                        var present = verifyGroup?.Blocks.FirstOrDefault(b => b.Name.Equals(blockName, StringComparison.OrdinalIgnoreCase)) != null;
+                        if (!present)
+                        {
+                            throw new PortalException(PortalErrorCode.ImportFailed,
+                                $"Move of '{blockName}' to '{targetGroupPath}' could not be verified");
+                        }
 
-            return $"Moved '{blockName}' to '{targetGroupPath}' via {method}";
+                        return $"Moved '{blockName}' to '{targetGroupPath}' via {method}";
+            });
         }
 
         /// <summary>
@@ -1217,11 +1274,12 @@ namespace TiaMcpServer.Siemens
         /// </summary>
         public bool DeleteBlock(string softwarePath, string blockName)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
 
-            if (string.IsNullOrWhiteSpace(blockName))
-                throw new PortalException(PortalErrorCode.InvalidParams, "DeleteBlock: blockName is empty");
+            ValidateBlockName(blockName, "DeleteBlock");
 
             var softwareContainer = GetSoftwareContainer(softwarePath);
             if (softwareContainer?.Software is not PlcSoftware plcSoftware || plcSoftware.BlockGroup == null)
@@ -1248,6 +1306,7 @@ namespace TiaMcpServer.Siemens
             var after = new List<PlcBlock>();
             GetBlocksRecursive(plcSoftware.BlockGroup, after);
             return after.FirstOrDefault(b => b.Name.Equals(blockName, StringComparison.OrdinalIgnoreCase)) == null;
+            });
         }
 
         /// <summary>
@@ -1257,11 +1316,12 @@ namespace TiaMcpServer.Siemens
         /// </summary>
         public int SetBlockNumber(string softwarePath, string blockName, int number)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
 
-            if (string.IsNullOrWhiteSpace(blockName))
-                throw new PortalException(PortalErrorCode.InvalidParams, "SetBlockNumber: blockName is empty");
+            ValidateBlockName(blockName, "SetBlockNumber");
 
             var softwareContainer = GetSoftwareContainer(softwarePath);
             if (softwareContainer?.Software is not PlcSoftware plcSoftware || plcSoftware.BlockGroup == null)
@@ -1291,6 +1351,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return previous;
+            });
         }
 
         // ======================================================================
@@ -1304,63 +1365,68 @@ namespace TiaMcpServer.Siemens
         // Core single-block round-trip (shared with MoveBlockToGroup semantics).
         private string MoveSingleBlockToGroupCore(PlcBlock block, PlcBlockGroup targetGroup, string blockName, string targetGroupPath)
         {
-            var tempDir = Path.Combine(Path.GetTempPath(), "tia_mcp_move", Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(tempDir);
-            string method;
-            try
+            return _sta.Run(() =>
             {
-                bool usedDocs;
-                try
-                {
-#if !TIA_V18
-                    var exp = block.ExportAsDocuments(new DirectoryInfo(tempDir), blockName);
-                    usedDocs = exp != null && exp.State == DocumentResultState.Success;
-#else
-                    usedDocs = false;
-#endif
-                }
-                catch (EngineeringNotSupportedException)
-                {
-                    usedDocs = false; // mixed-language / STL -> fall back to XML
-                }
+                        var tempDir = Path.Combine(Path.GetTempPath(), "tia_mcp_move", Guid.NewGuid().ToString("N"));
+                        Directory.CreateDirectory(tempDir);
+                        string method;
+                        try
+                        {
+                            bool usedDocs;
+                            try
+                            {
+            #if !TIA_V18
+                                var exp = block.ExportAsDocuments(new DirectoryInfo(tempDir), blockName);
+                                usedDocs = exp != null && exp.State == DocumentResultState.Success;
+            #else
+                                usedDocs = false;
+            #endif
+                            }
+                            catch (EngineeringNotSupportedException)
+                            {
+                                usedDocs = false; // mixed-language / STL -> fall back to XML
+                            }
 
-                if (usedDocs)
-                {
-                    block.Delete();
-#if !TIA_V18
-                    var res = targetGroup.Blocks.ImportFromDocuments(new DirectoryInfo(tempDir), blockName, ImportDocumentOptions.Override);
-                    if (res == null || res.State != DocumentResultState.Success)
-                    {
-                        throw new PortalException(PortalErrorCode.ImportFailed,
-                            $"Re-import of '{blockName}' into '{targetGroupPath}' failed (documents)");
-                    }
-#endif
-                    method = "documents(.s7dcl)";
-                }
-                else
-                {
-                    var xml = Path.Combine(tempDir, blockName + ".xml");
-                    block.Export(new FileInfo(xml), ExportOptions.None);
-                    block.Delete();
-                    var imp = targetGroup.Blocks.Import(new FileInfo(xml), ImportOptions.Override);
-                    if (imp == null || imp.Count == 0)
-                    {
-                        throw new PortalException(PortalErrorCode.ImportFailed,
-                            $"Re-import of '{blockName}' into '{targetGroupPath}' failed (xml)");
-                    }
-                    method = "xml(SimaticML)";
-                }
-            }
-            finally
-            {
-                try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { /* best-effort cleanup */ }
-            }
-            return method;
+                            if (usedDocs)
+                            {
+                                block.Delete();
+            #if !TIA_V18
+                                var res = targetGroup.Blocks.ImportFromDocuments(new DirectoryInfo(tempDir), blockName, ImportDocumentOptions.Override);
+                                if (res == null || res.State != DocumentResultState.Success)
+                                {
+                                    throw new PortalException(PortalErrorCode.ImportFailed,
+                                        $"Re-import of '{blockName}' into '{targetGroupPath}' failed (documents)");
+                                }
+            #endif
+                                method = "documents(.s7dcl)";
+                            }
+                            else
+                            {
+                                var xml = Path.Combine(tempDir, blockName + ".xml");
+                                block.Export(new FileInfo(xml), ExportOptions.None);
+                                block.Delete();
+                                var imp = targetGroup.Blocks.Import(new FileInfo(xml), ImportOptions.Override);
+                                if (imp == null || imp.Count == 0)
+                                {
+                                    throw new PortalException(PortalErrorCode.ImportFailed,
+                                        $"Re-import of '{blockName}' into '{targetGroupPath}' failed (xml)");
+                                }
+                                method = "xml(SimaticML)";
+                            }
+                        }
+                        finally
+                        {
+                            try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { /* best-effort cleanup */ }
+                        }
+                        return method;
+            });
         }
 
         // Move every (optionally name-filtered / type-filtered) block into targetGroupPath.
         public string MoveBlocksToGroup(string softwarePath, string targetGroupPath, string nameRegex = "", string blockType = "", bool autoCreateGroup = true)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
 
@@ -1420,6 +1486,7 @@ namespace TiaMcpServer.Siemens
                  + (skipped.Count > 0 ? $"; {skipped.Count} already in group (skipped)" : "")
                  + (failed.Count > 0 ? $"; {failed.Count} failed: {string.Join("; ", failed)}" : "")
                  + (notVerified.Count > 0 ? $"; {notVerified.Count} not verified: {string.Join(", ", notVerified)}" : "");
+            });
         }
 
         // Create (nested) PLC data-type (UDT/Struct) groups, mirroring EnsurePlcBlockGroup.
@@ -1450,6 +1517,8 @@ namespace TiaMcpServer.Siemens
         // Move every (optionally name-filtered / kind-filtered) PLC data type into targetTypeGroupPath.
         public string MoveTypesToGroup(string softwarePath, string targetGroupPath, string nameRegex = "", string typeKind = "", bool autoCreateGroup = true)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
 
@@ -1518,6 +1587,7 @@ namespace TiaMcpServer.Siemens
             return $"Moved {moved.Count} type(s) to '{targetGroupPath}'"
                  + (skipped.Count > 0 ? $"; {skipped.Count} already in group (skipped)" : "")
                  + (failed.Count > 0 ? $"; {failed.Count} failed: {string.Join("; ", failed)}" : "");
+            });
         }
 
         // Create-aware HMI screen-folder resolver (TryResolveChildGroupByPath only navigates).
@@ -1560,6 +1630,8 @@ namespace TiaMcpServer.Siemens
         // Move every (optionally name-filtered) HMI screen into targetFolderPath.
         public string MoveScreensToGroup(string softwarePath, string targetFolderPath, string nameRegex = "", bool autoCreateFolder = true)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
 
@@ -1632,6 +1704,7 @@ namespace TiaMcpServer.Siemens
             return $"Moved {moved.Count} screen(s) to '{targetFolderPath}'"
                  + (skipped.Count > 0 ? $"; {skipped.Count} skipped" : "")
                  + (failed.Count > 0 ? $"; {failed.Count} failed: {string.Join("; ", failed)}" : "");
+            });
         }
 
         // Generic engineering-object delete via reflection (EngineeringObject.Delete()).
@@ -1723,6 +1796,8 @@ namespace TiaMcpServer.Siemens
 
         private string MoveSingleTypeToGroupCore(PlcType type, PlcTypeGroup targetGroup, string typeName, string targetGroupPath)
         {
+            return _sta.Run(() =>
+            {
             var tempDir = Path.Combine(Path.GetTempPath(), "tia_mcp_move_type", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempDir);
             var xml = Path.Combine(tempDir, typeName + ".xml");
@@ -1741,10 +1816,13 @@ namespace TiaMcpServer.Siemens
             {
                 try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
             }
+            });
         }
 
         private string MoveSingleScreenToGroupCore(object screen, object screensCol, string screenName, string targetFolderPath)
         {
+            return _sta.Run(() =>
+            {
             var tempDir = Path.Combine(Path.GetTempPath(), "tia_mcp_move_screen", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(tempDir);
             var xml = Path.Combine(tempDir, MakeSafeFileName(screenName) + ".xml");
@@ -1762,11 +1840,14 @@ namespace TiaMcpServer.Siemens
             {
                 try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); } catch { }
             }
+            });
         }
 
         // Auto-classify every block into its subtype folder (FB/FC/DB/OB/Other).
         public string AutoClassifyBlocks(string softwarePath, string folderMappingJson = "", bool autoCreate = true)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
 
@@ -1802,11 +1883,14 @@ namespace TiaMcpServer.Siemens
 
             return $"AutoClassify blocks: moved {moved.Count}, skipped {skipped.Count}, failed {failed.Count}"
                  + (failed.Count > 0 ? $"; failed: {string.Join("; ", failed)}" : "");
+            });
         }
 
         // Auto-classify every PLC data type into its subtype folder (Struct/Alias/Array/...).
         public string AutoClassifyTypes(string softwarePath, string folderMappingJson = "", bool autoCreate = true)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
 
@@ -1842,6 +1926,7 @@ namespace TiaMcpServer.Siemens
 
             return $"AutoClassify types: moved {moved.Count}, skipped {skipped.Count}, failed {failed.Count}"
                  + (failed.Count > 0 ? $"; failed: {string.Join("; ", failed)}" : "");
+            });
         }
 
         // Auto-classify every HMI screen into a folder named by its screen type.
@@ -1849,6 +1934,8 @@ namespace TiaMcpServer.Siemens
         // screen's concrete class name; override via folderMappingJson if desired.)
         public string AutoClassifyScreens(string softwarePath, string folderMappingJson = "", bool autoCreate = true)
         {
+            return _sta.Run(() =>
+            {
             if (IsProjectNull())
                 throw new PortalException(PortalErrorCode.InvalidState, "No project is open in TIA Portal");
 
@@ -1897,6 +1984,7 @@ namespace TiaMcpServer.Siemens
 
             return $"AutoClassify screens: moved {moved.Count}, skipped {skipped.Count}, failed {failed.Count}"
                  + (failed.Count > 0 ? $"; failed: {string.Join("; ", failed)}" : "");
+            });
         }
 
         private PlcTypeGroup? GetPlcTypeGroupByPath(string softwarePath, string groupPath)
@@ -1936,6 +2024,8 @@ namespace TiaMcpServer.Siemens
 
         private string GetPlcBlockGroupPath(PlcBlockGroup group)
         {
+            return _sta.Run(() =>
+            {
             if (group == null)
             {
                 return string.Empty;
@@ -1970,10 +2060,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return path;
+            });
         }
 
         private string GetPlcTypeGroupPath(PlcTypeGroup group)
         {
+            return _sta.Run(() =>
+            {
             if (group == null)
             {
                 return string.Empty;
@@ -2008,6 +2101,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return path;
+            });
         }
 
         #endregion
@@ -2016,6 +2110,8 @@ namespace TiaMcpServer.Siemens
 
         private bool GetDevicesRecursive(DeviceUserGroup group, List<Device> list, string regexName = "")
         {
+            return _sta.Run(() =>
+            {
             var anySuccess = false;
 
             foreach (var composition in group.Devices)
@@ -2047,10 +2143,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return anySuccess;
+            });
         }
 
         private bool GetBlocksRecursive(PlcBlockGroup group, List<PlcBlock> list, string regexName = "")
         {
+            return _sta.Run(() =>
+            {
             var anySuccess = false;
 
             foreach (var composition in group.Blocks)
@@ -2082,10 +2181,13 @@ namespace TiaMcpServer.Siemens
             }
 
             return anySuccess;
+            });
         }
 
         private bool GetTypesRecursive(PlcTypeGroup group, List<PlcType> list, string regexName = "")
         {
+            return _sta.Run(() =>
+            {
             var anySuccess = false;
 
             foreach (var composition in group.Types)
@@ -2118,6 +2220,7 @@ namespace TiaMcpServer.Siemens
             }
 
             return anySuccess;
+            });
         }
 
         #region meta (reflection helpers)
@@ -2372,6 +2475,8 @@ namespace TiaMcpServer.Siemens
 
         public ModelContextProtocol.ResponseObjectDescribe DescribeObject(string objectKind, string objectPath, string softwarePath = "", int maxMembers = 200)
         {
+            return _sta.Run(() =>
+            {
             var o = ResolveObject(objectKind, objectPath, softwarePath);
             if (o == null)
             {
@@ -2393,10 +2498,13 @@ namespace TiaMcpServer.Siemens
                 TypeName = o.GetType().FullName ?? o.GetType().Name,
                 Members = DescribeMembers(o, Math.Max(10, Math.Min(2000, maxMembers))).ToList()
             };
+            });
         }
 
         public ModelContextProtocol.ResponseObjectDescribe DescribeObjectProperty(string objectKind, string objectPath, string propertyPath, string softwarePath = "", int maxMembers = 200)
         {
+            return _sta.Run(() =>
+            {
             var o = ResolveObject(objectKind, objectPath, softwarePath);
             if (o == null)
             {
@@ -2431,10 +2539,13 @@ namespace TiaMcpServer.Siemens
                 TypeName = v.GetType().FullName ?? v.GetType().Name,
                 Members = DescribeMembers(v, Math.Max(10, Math.Min(2000, maxMembers))).ToList()
             };
+            });
         }
 
         public ModelContextProtocol.ResponseObjectValue GetObjectProperty(string objectKind, string objectPath, string propertyPath, string softwarePath = "")
         {
+            return _sta.Run(() =>
+            {
             var o = ResolveObject(objectKind, objectPath, softwarePath);
             if (o == null)
             {
@@ -2470,10 +2581,13 @@ namespace TiaMcpServer.Siemens
                 ValueType = vt?.FullName ?? (v == null ? null : v.GetType().Name),
                 Value = outValue
             };
+            });
         }
 
         public ModelContextProtocol.ResponseObjectChildren ListObjectChildren(string objectKind, string objectPath, string collectionProperty, string softwarePath = "", int limit = 200)
         {
+            return _sta.Run(() =>
+            {
             var o = ResolveObject(objectKind, objectPath, softwarePath);
             if (o == null)
             {
@@ -2516,6 +2630,7 @@ namespace TiaMcpServer.Siemens
                 Collection = collectionProperty,
                 Items = items
             };
+            });
         }
 
         private static ModelContextProtocol.ResponseObjectValue InvokeOnInstance(object instance, string resultKind, string resultPath, string methodName, JsonArray? args, bool allowWrite)
@@ -2722,6 +2837,8 @@ namespace TiaMcpServer.Siemens
 
         public ModelContextProtocol.ResponseObjectValue InvokeObject(string objectKind, string objectPath, string methodName, JsonArray? args = null, string softwarePath = "", bool allowWrite = false)
         {
+            return _sta.Run(() =>
+            {
             var o = ResolveObject(objectKind, objectPath, softwarePath);
             if (o == null)
             {
@@ -2733,6 +2850,7 @@ namespace TiaMcpServer.Siemens
                 };
             }
             return InvokeOnInstance(o, objectKind, objectPath, methodName, args, allowWrite);
+            });
         }
 
         private static Type? FindTypeBySuffix(string typeSuffix)
@@ -2777,6 +2895,8 @@ namespace TiaMcpServer.Siemens
 
         public ModelContextProtocol.ResponseObjectDescribe DescribeService(string objectKind, string objectPath, string serviceTypeSuffix, string softwarePath = "", int maxMembers = 200)
         {
+            return _sta.Run(() =>
+            {
             if ((serviceTypeSuffix ?? string.Empty).IndexOf("Force", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return new ModelContextProtocol.ResponseObjectDescribe
@@ -2835,10 +2955,13 @@ namespace TiaMcpServer.Siemens
                 TypeName = svc.GetType().FullName ?? svc.GetType().Name,
                 Members = DescribeMembers(svc, Math.Max(10, Math.Min(2000, maxMembers))).ToList()
             };
+            });
         }
 
         public ModelContextProtocol.ResponseObjectValue InvokeService(string objectKind, string objectPath, string serviceTypeSuffix, string methodName, JsonArray? args = null, string softwarePath = "", bool allowWrite = false)
         {
+            return _sta.Run(() =>
+            {
             if ((serviceTypeSuffix ?? string.Empty).IndexOf("Force", StringComparison.OrdinalIgnoreCase) >= 0)
             {
                 return new ModelContextProtocol.ResponseObjectValue
@@ -2884,6 +3007,7 @@ namespace TiaMcpServer.Siemens
 
             var svcPath = $"{objectKind}:{objectPath}::{serviceTypeSuffix}";
             return InvokeOnInstance(svc, "Service", svcPath, methodName, args, allowWrite);
+            });
         }
 
         #endregion

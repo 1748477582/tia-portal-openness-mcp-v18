@@ -22,6 +22,9 @@ namespace TiaMcpServer.Siemens
     {
         public ResponseJsonReport AnalyzeBlockImpact(string softwarePath, string blockName, string blockScope = "")
         {
+            return _sta.Run(() =>
+            {
+            ValidateBlockName(blockName, "AnalyzeBlockImpact");
             var data = new JsonObject
             {
                 ["softwarePath"] = softwarePath,
@@ -131,6 +134,7 @@ namespace TiaMcpServer.Siemens
                 Warnings = warnings.Count > 0 ? warnings.Select(w => w!.ToString()).ToArray() : null,
                 Meta = new JsonObject { ["timestamp"] = DateTime.Now, ["success"] = true }
             };
+            });
         }
 
         private static int SafeGetNumber(PlcBlock block)

@@ -21,6 +21,8 @@ namespace TiaMcpServer.Siemens
     {
         public ModelContextProtocol.ResponseJsonReport TraceTagCause(string softwarePath, string tag, string blockScope = "")
         {
+            return _sta.Run(() =>
+            {
             var data = new JsonObject
             {
                 ["softwarePath"] = softwarePath,
@@ -105,6 +107,7 @@ namespace TiaMcpServer.Siemens
                 Warnings = warnings.Count > 0 ? warnings.Select(w => w!.ToString()).ToArray() : null,
                 Meta = new JsonObject { ["timestamp"] = DateTime.Now, ["success"] = true }
             };
+            });
         }
 
         // Live variant: run the offline trace, then resolve each gating-condition operand
@@ -115,6 +118,8 @@ namespace TiaMcpServer.Siemens
             string softwarePath, string tag, string ip, int rack = 0, int slot = 1,
             string blockScope = "", string expectModuleContains = "")
         {
+            return _sta.Run(() =>
+            {
             if (string.IsNullOrWhiteSpace(ip))
                 return new ModelContextProtocol.ResponseJsonReport
                 {
@@ -190,6 +195,7 @@ namespace TiaMcpServer.Siemens
             int total = conditions?.Count ?? 0;
             trace.Message = $"{trace.Message} Live-read {specs.Count}/{total} gating condition(s) over S7 ({total - specs.Count} unresolved).";
             return trace;
+            });
         }
 
         // name (normalized) -> (raw name, absolute LogicalAddress, TIA DataTypeName) for
@@ -207,15 +213,20 @@ namespace TiaMcpServer.Siemens
 
         private void CollectTagGroups(object? group, Dictionary<string, (string name, string address, string dataType)> map, HashSet<object> visited)
         {
+            _sta.Run(() =>
+            {
             if (group == null || !visited.Add(group)) return;
             CollectTagsFromTables(TryGetPropertyValue(group, "TagTables"), map);
             var subs = TryGetPropertyValue(group, "Groups");
             if (subs is IEnumerable en && !(subs is string))
                 foreach (var g in en) if (g != null) CollectTagGroups(g, map, visited);
+            });
         }
 
         private void CollectTagsFromTables(object? tables, Dictionary<string, (string name, string address, string dataType)> map)
         {
+            _sta.Run(() =>
+            {
             if (!(tables is IEnumerable ten) || tables is string) return;
             foreach (var table in ten)
             {
@@ -233,6 +244,7 @@ namespace TiaMcpServer.Siemens
                     if (keyNorm.Length > 0 && !map.ContainsKey(keyNorm)) map[keyNorm] = (name, addr, dt);
                 }
             }
+            });
         }
     }
 }
