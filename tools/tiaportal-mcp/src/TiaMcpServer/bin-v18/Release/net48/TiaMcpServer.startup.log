@@ -1,0 +1,302 @@
+=== 2026-07-15T08:58:51.5971357+08:00 PID=28088 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --version
+Logging defaulted to stderr (--logging 1). Pass --logging 0 to silence, 2 for Debug output, 3 for EventLog.
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-15T09:01:29.3887732+08:00 PID=23876 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18
+Logging defaulted to stderr (--logging 1). Pass --logging 0 to silence, 2 for Debug output, 3 for EventLog.
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-15T09:10:41.1085144+08:00 PID=22788 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18
+Logging defaulted to stderr (--logging 1). Pass --logging 0 to silence, 2 for Debug output, 3 for EventLog.
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-16T10:58:07.7270013+08:00 PID=16944 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18
+Logging defaulted to stderr (--logging 1). Pass --logging 0 to silence, 2 for Debug output, 3 for EventLog.
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-16T14:23:26.7958583+08:00 PID=18124 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18
+Logging defaulted to stderr (--logging 1). Pass --logging 0 to silence, 2 for Debug output, 3 for EventLog.
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-20T15:42:30.8909220+08:00 PID=18836 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18
+Logging defaulted to stderr (--logging 1). Pass --logging 0 to silence, 2 for Debug output, 3 for EventLog.
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-24T08:29:06.3947418+08:00 PID=41500 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18
+Logging defaulted to stderr (--logging 1). Pass --logging 0 to silence, 2 for Debug output, 3 for EventLog.
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-27T10:30:27.4925299+08:00 PID=45904 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: version
+Logging defaulted to stderr (--logging 1). Pass --logging 0 to silence, 2 for Debug output, 3 for EventLog.
+TIA major version (auto-detected): 20
+EngineRouter: TIA V20 requested but this exe is built for V18; rerouting to C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v20\Release\net48\TiaMcpServer.exe
+=== 2026-07-29T08:47:10.3375279+08:00 PID=48980 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: version --tia-major-version 18 --tia-portal-location C:\Program Files\Siemens\Automation\Portal V18
+Logging defaulted to stderr (--logging 1). Pass --logging 0 to silence, 2 for Debug output, 3 for EventLog.
+TIA Portal location (from CLI): C:\Program Files\Siemens\Automation\Portal V18
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+=== 2026-07-29T08:47:26.1562220+08:00 PID=25284 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: doctor --tia-major-version 18 --tia-portal-location C:\Program Files\Siemens\Automation\Portal V18
+Logging defaulted to stderr (--logging 1). Pass --logging 0 to silence, 2 for Debug output, 3 for EventLog.
+TIA Portal location (from CLI): C:\Program Files\Siemens\Automation\Portal V18
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+=== 2026-07-29T08:48:08.0382074+08:00 PID=30680 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-29T08:50:02.4502132+08:00 PID=37272 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-29T08:50:31.9500664+08:00 PID=51128 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-29T09:37:08.9461967+08:00 PID=10800 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-29T09:38:49.9989313+08:00 PID=42068 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-29T16:55:29.2459735+08:00 PID=53212 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-30T08:35:06.8059633+08:00 PID=46384 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-30T09:56:54.3309454+08:00 PID=36480 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-30T09:57:13.5932142+08:00 PID=38692 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-30T09:57:37.9966150+08:00 PID=10232 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-30T10:19:05.9693392+08:00 PID=21812 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-30T10:30:13.0324711+08:00 PID=22740 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-30T10:45:44.6615545+08:00 PID=43260 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-30T10:52:19.3242363+08:00 PID=47600 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0
+TIA major version (from CLI): 18
+TIA Portal will launch headless (WithoutUserInterface) for faster startup; pass --with-ui to show the GUI.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-07-30T11:07:07.6313822+08:00 PID=26932 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-03T17:31:41.8290982+08:00 PID=12396 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-05T17:32:25.1002070+08:00 PID=33840 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-06T08:54:10.7392533+08:00 PID=11464 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-06T10:57:14.1788357+08:00 PID=14196 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-06T11:00:03.6283617+08:00 PID=6092 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-06T13:53:00.3875523+08:00 PID=11192 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-06T14:15:39.8966708+08:00 PID=15436 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-07T11:28:55.6079576+08:00 PID=24700 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-07T13:50:36.7049568+08:00 PID=8120 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-07T17:36:45.4424088+08:00 PID=22760 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-07T17:37:57.6576908+08:00 PID=16476 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
+=== 2026-08-10T10:49:36.1086567+08:00 PID=38096 ===
+BaseDir: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\
+Exe: C:\Users\106905\Downloads\TIA_MCP_V18_Work\TIA_MCP_Delivery_v2.3.0_20260704\tools\tiaportal-mcp\src\TiaMcpServer\bin-v18\Release\net48\TiaMcpServer.exe
+Args: --tia-major-version 18 --logging 0 --with-ui
+TIA major version (from CLI): 18
+TIA Portal will launch WITH user interface (--with-ui); slower cold start.
+Checking Windows group membership: Siemens TIA Openness
+Siemens TIA Openness group membership: True
