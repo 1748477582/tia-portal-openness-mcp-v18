@@ -409,12 +409,107 @@ namespace TiaMcpServer.Siemens
             }
         }
 
+        /// <summary>
+        /// Extract the block name from a SimaticML XML file by locating the &lt;Name&gt;
+        /// element inside the block's &lt;AttributeList&gt;. Falls back to the filename stem
+        /// when XML parsing is unavailable or the element is not found.
+        /// </summary>
+        private static string? ExtractBlockNameFromImportXml(string xmlPath)
+        {
+            try
+            {
+                var xml = File.ReadAllText(xmlPath);
+                var match = Regex.Match(xml,
+                    @"<SW\.Blocks\.\w+[^>]*>.*?<AttributeList>.*?<Name>([^<]+)</Name>",
+                    RegexOptions.Singleline);
+                if (match.Success)
+                {
+                    var name = match.Groups[1].Value.Trim();
+                    if (!string.IsNullOrEmpty(name)) return name;
+                }
+            }
+            catch { }
+            // Fallback: use filename without extension
+            return Path.GetFileNameWithoutExtension(xmlPath);
+        }
+
+        /// <summary>
+        /// Backup an existing block in the group before it gets overwritten by an import.
+        /// Returns the path to the backup .xml file, or null if the block doesn't exist yet
+        /// (new import, no rollback needed) or backup failed (best-effort, won't block import).
+        /// </summary>
+        private string? BackupBlockBeforeImport(PlcBlockGroup group, string blockName)
+        {
+            try
+            {
+                var existing = group.Blocks.Find(blockName);
+                if (existing == null) return null;
+
+                var backupPath = Path.Combine(Path.GetTempPath(),
+                    $"tia_mcp_rollback_{Guid.NewGuid():N}_{blockName}.xml");
+                existing.Export(new FileInfo(backupPath), ExportOptions.None);
+                _logger?.LogInformation("Rollback: backed up block '{BlockName}' to {BackupPath}",
+                    blockName, backupPath);
+                return backupPath;
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogWarning(ex, "Rollback: failed to backup block '{BlockName}' (best-effort, import will proceed)",
+                    blockName);
+                return null;
+            }
+        }
+
+        /// <summary>
+        /// Restore a block from a backup file after a failed import.
+        /// Deletes the partially-imported/failed block first, then re-imports the backup.
+        /// The backup file is cleaned up regardless of success or failure.
+        /// </summary>
+        private void RestoreBlockFromBackup(PlcBlockGroup group, string backupPath, string blockName)
+        {
+            if (string.IsNullOrEmpty(backupPath) || !File.Exists(backupPath)) return;
+
+            try
+            {
+                // Delete the failed/corrupted block from the failed import attempt
+                var failed = group.Blocks.Find(blockName);
+                if (failed != null)
+                {
+                    failed.Delete();
+                    _logger?.LogWarning("Rollback: deleted partially-imported block '{BlockName}'",
+                        blockName);
+                }
+
+                // Re-import the pre-import backup
+                var backupFi = new FileInfo(backupPath);
+                group.Blocks.Import(backupFi, ImportOptions.Override);
+                _logger?.LogInformation("Rollback: restored block '{BlockName}' from {BackupPath}",
+                    blockName, backupPath);
+            }
+            catch (Exception ex)
+            {
+                _logger?.LogError(ex,
+                    "Rollback: CRITICAL - failed to restore block '{BlockName}' from {BackupPath}. " +
+                    "The block may be in an inconsistent state!",
+                    blockName, backupPath);
+            }
+            finally
+            {
+                try { File.Delete(backupPath); } catch { }
+            }
+        }
+
         public bool ImportBlock(string softwarePath, string groupPath, string importPath)
         {
             return _sta.Run(() =>
             {
             AuditLogger.Record("ImportBlock", $"softwarePath={softwarePath}, groupPath={groupPath}, importPath={importPath}");
             _logger?.LogInformation($"Importing block from path: {importPath}");
+
+            // Extract block name early so we can rollback even if the import fails mid-way.
+            var blockName = ExtractBlockNameFromImportXml(importPath);
+            PlcBlockGroup? group = null;
+            string? backupPath = null;
 
             try
             {
@@ -434,13 +529,18 @@ namespace TiaMcpServer.Siemens
                             ? $"Software container not found for path '{softwarePath}'"
                             : $"Software at '{softwarePath}' is not PlcSoftware (type={softwareContainer.Software.GetType().Name})");
 
-                var group = GetPlcBlockGroupByPath(softwarePath, groupPath);
+                group = GetPlcBlockGroupByPath(softwarePath, groupPath);
                 if (group == null)
                     throw new PortalException(PortalErrorCode.NotFound,
                         $"PLC block group not found for groupPath='{groupPath}'; use empty string for root program blocks");
 
                 if (!new FileInfo(importPath).Exists)
                     throw new PortalException(PortalErrorCode.InvalidParams, $"Import file not found: {importPath}");
+
+                // Snapshot existing block before overwriting (best-effort rollback safety net).
+                if (!string.IsNullOrEmpty(blockName))
+                    backupPath = BackupBlockBeforeImport(group, blockName!);
+
                 var fileInfo = new FileInfo(PrepareXmlForImport(importPath));
 
                 var imported = group.Blocks.Import(fileInfo, ImportOptions.Override);
@@ -451,6 +551,16 @@ namespace TiaMcpServer.Siemens
             }
             catch (Exception ex)
             {
+                // Attempt rollback: restore the pre-import backup if we have one.
+                if (group != null && !string.IsNullOrEmpty(backupPath) && !string.IsNullOrEmpty(blockName))
+                {
+                    try { RestoreBlockFromBackup(group, backupPath!, blockName!); }
+                    catch (Exception rollbackEx)
+                    {
+                        _logger?.LogError(rollbackEx, "Rollback failed for block '{BlockName}'; block may be in an inconsistent state", blockName);
+                    }
+                }
+
                 // Surface the real Openness error to callers — without this the message
                 // is just "Import failed" which is useless for diagnosing bad LAD/SCL XML.
                 var inner = UnwrapImportError(ex);
@@ -458,7 +568,8 @@ namespace TiaMcpServer.Siemens
                 pex.Data["softwarePath"] = softwarePath;
                 pex.Data["groupPath"] = groupPath;
                 pex.Data["importPath"] = importPath;
-                _logger?.LogError(pex, "ImportBlock failed for {SoftwarePath} group={GroupPath} file={ImportPath}: {Inner}", softwarePath, groupPath, importPath, inner);
+                string rollbackNote = !string.IsNullOrEmpty(backupPath) ? " (auto-rollback attempted)" : "";
+                _logger?.LogError(pex, "ImportBlock failed for {SoftwarePath} group={GroupPath} file={ImportPath}: {Inner}{RollbackNote}", softwarePath, groupPath, importPath, inner, rollbackNote);
                 throw pex;
             }
             });
@@ -601,6 +712,7 @@ namespace TiaMcpServer.Siemens
         {
             return _sta.Run(() =>
             {
+            AuditLogger.Record("ImportBlocksFromDirectory", $"softwarePath={softwarePath}, groupPath={groupPath}, dir={dir}, regexName={regexName}, overwrite={overwrite}");
             var imported = new List<string>();
             var failed = new List<ImportFailure>();
 
@@ -646,6 +758,7 @@ namespace TiaMcpServer.Siemens
                         continue;
                     }
 
+                    string? backupPath = null;
                     try
                     {
                         if (!new FileInfo(file).Exists)
@@ -672,6 +785,9 @@ namespace TiaMcpServer.Siemens
                             }
                         }
 
+                        // Snapshot existing block before overwriting (best-effort rollback).
+                        backupPath = BackupBlockBeforeImport(group, name);
+
                         var list = group.Blocks.Import(fi, ImportOptions.Override);
                         if (list != null && list.Count > 0)
                         {
@@ -684,6 +800,12 @@ namespace TiaMcpServer.Siemens
                     }
                     catch (Exception ex)
                     {
+                        // Attempt rollback for this file.
+                        try { RestoreBlockFromBackup(group, backupPath!, name); }
+                        catch (Exception rollbackEx)
+                        {
+                            _logger?.LogError(rollbackEx, "Rollback failed for block '{BlockName}' during batch import", name);
+                        }
                         failed.Add(new ImportFailure { Path = file, Error = ex.ToString() });
                     }
                 }
