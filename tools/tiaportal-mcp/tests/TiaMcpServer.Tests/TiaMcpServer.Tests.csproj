@@ -7,6 +7,15 @@
     <IsTestProject>true</IsTestProject>
     <PlatformTarget>x64</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
+    <!-- D7: 参数化测试目标版本。默认测 V18；传 -p:TestTargetVersion=20 测 V20。
+         与 V18/V20 csproj 的 TIA_V18/TIA_V20 符号及 bin-v18/bin-v20 输出目录对应。 -->
+    <TestTargetVersion>18</TestTargetVersion>
+    <MainProjectCsproj Condition="'$(TestTargetVersion)' == '18'">..\..\src\TiaMcpServer\TiaMcpServer.V18.csproj</MainProjectCsproj>
+    <MainProjectCsproj Condition="'$(TestTargetVersion)' == '20'">..\..\src\TiaMcpServer\TiaMcpServer.V20.csproj</MainProjectCsproj>
+    <MainBinDir Condition="'$(TestTargetVersion)' == '18'">bin-v18</MainBinDir>
+    <MainBinDir Condition="'$(TestTargetVersion)' == '20'">bin-v20</MainBinDir>
+    <TiaPortalPublicApiDir Condition="'$(TestTargetVersion)' == '18'">C:\Program Files\Siemens\Automation\Portal V18\PublicAPI\V18</TiaPortalPublicApiDir>
+    <TiaPortalPublicApiDir Condition="'$(TestTargetVersion)' == '20'">D:\Program Files\Siemens\Automation\Portal V20\PublicAPI\V20</TiaPortalPublicApiDir>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
@@ -14,13 +23,14 @@
     <PackageReference Include="xunit.runner.visualstudio" Version="3.0.2" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\src\TiaMcpServer\TiaMcpServer.V18.csproj" />
+    <!-- D7: 指向参数化后的主工程 csproj（V18 或 V20）。InternalsVisibleTo 已在两个主 csproj 中配置。 -->
+    <ProjectReference Include="$(MainProjectCsproj)" />
   </ItemGroup>
   <!-- Copy all DLLs from main project build output, plus Siemens.Engineering from TIA Portal -->
   <Target Name="CopyMainOutput" AfterTargets="Build">
     <ItemGroup>
-      <MainDlls Include="$(MSBuildProjectDirectory)\..\..\src\TiaMcpServer\bin-verify\Release\net48\*.dll" />
-      <SiemensDlls Include="C:\Program Files\Siemens\Automation\Portal V18\PublicAPI\V18\Siemens.Engineering*.dll" />
+      <MainDlls Include="$(MSBuildProjectDirectory)\..\..\src\TiaMcpServer\$(MainBinDir)\Release\net48\*.dll" />
+      <SiemensDlls Include="$(TiaPortalPublicApiDir)\Siemens.Engineering*.dll" />
     </ItemGroup>
     <Copy SourceFiles="@(MainDlls)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(SiemensDlls)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />

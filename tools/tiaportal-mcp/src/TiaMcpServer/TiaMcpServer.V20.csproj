@@ -11,9 +11,12 @@
     <PlatformTarget>x64</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
     <DefineConstants>$(DefineConstants);TIA_V20</DefineConstants>
-    <TiaPortalLocation>D:\app\TIA20\Portal V20</TiaPortalLocation>
-    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;obj-v20\**;bin\**;bin-v20\**</DefaultItemExcludes>
+    <TiaPortalLocation>D:\Program Files\Siemens\Automation\Portal V20</TiaPortalLocation>
+    <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;obj-v20\**;obj-v18\**;obj-verify*\**;bin\**;bin-v20\**;bin-v18\**;bin-verify*\**</DefaultItemExcludes>
   </PropertyGroup>
+  <ItemGroup>
+    <InternalsVisibleTo Include="TiaMcpServer.Tests" />
+  </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="10.0.0-preview.4.25258.110" />
     <PackageReference Include="ModelContextProtocol" Version="0.3.0-preview.4" />
@@ -32,5 +35,9 @@
   <ItemGroup>
     <Compile Remove="tests\**" />
     <None Include="tests\**" />
+  </ItemGroup>
+  <ItemGroup>
+    <!-- Q6: appsettings.json 随构建复制到输出目录（exe 旁），启动时加载。与 V18 csproj 对齐。 -->
+    <None Update="appsettings.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

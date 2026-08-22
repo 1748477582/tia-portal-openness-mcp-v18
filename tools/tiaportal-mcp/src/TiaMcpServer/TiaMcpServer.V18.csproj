@@ -11,7 +11,7 @@
     <PlatformTarget>x64</PlatformTarget>
     <Prefer32Bit>false</Prefer32Bit>
     <DefineConstants>$(DefineConstants);TIA_V18</DefineConstants>
-    <TiaPortalLocation>D:\Program Files\Siemens\Automation\Portal V18</TiaPortalLocation>
+    <TiaPortalLocation>C:\Program Files\Siemens\Automation\Portal V18</TiaPortalLocation>
     <DefaultItemExcludes>$(DefaultItemExcludes);obj\**;obj-v20\**;obj-v18\**;obj-verify*\**;bin\**;bin-v20\**;bin-v18\**;bin-verify*\**</DefaultItemExcludes>
   </PropertyGroup>
   <ItemGroup>
